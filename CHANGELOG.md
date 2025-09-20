@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/karlorz/ccmultihelper/compare/v1.0.2...v1.1.0) (2025-09-20)
+
+
+### Features
+
+* add automatic version check and update notifications ([ff169fa](https://github.com/karlorz/ccmultihelper/commit/ff169faebdc8b92db46f62670674d6562e5d9fe9))
+
 ## [1.0.2](https://github.com/karlorz/ccmultihelper/compare/v1.0.1...v1.0.2) (2025-09-20)
 
 
