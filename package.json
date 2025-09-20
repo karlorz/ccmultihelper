@@ -12,7 +12,9 @@
     "build": "bun build src/cli.ts --outfile=dist/cli.js --target=node --minify",
     "dev": "bun run src/cli.ts",
     "test": "bun test",
-    "prepare": "bun run build"
+    "prepare": "bun run build",
+    "release": "semantic-release",
+    "release:dry-run": "semantic-release --dry-run"
   },
   "keywords": [
     "claude-code",
@@ -33,10 +35,15 @@
     "chokidar": "^3.5.3"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "@types/inquirer": "^9.0.7",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/npm": "^12.0.2",
     "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.11.0",
     "bun": "^1.0.0",
+    "semantic-release": "^24.2.9",
     "typescript": "^5.3.0"
   },
   "engines": {
@@ -49,10 +56,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/ccmultihelper.git"
+    "url": "https://github.com/karlorz/ccmultihelper.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/ccmultihelper/issues"
+    "url": "https://github.com/karlorz/ccmultihelper/issues"
   },
-  "homepage": "https://github.com/your-username/ccmultihelper#readme"
+  "homepage": "https://github.com/karlorz/ccmultihelper#readme",
+  "publishConfig": {
+    "access": "public"
+  }
 }
