@@ -7,9 +7,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
 import { execSync } from 'child_process';
+import { createHash } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Version from package.json
+const PACKAGE_VERSION = '1.0.2';
+const PACKAGE_NAME = 'ccmultihelper';
 
 const program = new Command();
 
@@ -74,7 +79,7 @@ function executeGitCommand(command: string, cwd: string, timeout: number = 30000
 program
   .name('ccmultihelper')
   .description('Claude Code Multi-Worktree Helper - Setup automated workflows for parallel Claude Code sessions')
-  .version('1.0.0');
+  .version(PACKAGE_VERSION);
 
 program
   .command('init')
@@ -746,6 +751,81 @@ async function cleanupWorktrees(projectName: string) {
     console.error(chalk.red('Cleanup failed:'), error.message);
     process.exit(1);
   }
+}
+
+// Version checking functionality
+async function checkForUpdates(): Promise<void> {
+  try {
+    // Skip version check in development or CI environments
+    if (process.env.NODE_ENV === 'development' || process.env.CI) {
+      return;
+    }
+
+    // Check only once per day (using cache)
+    const cacheDir = path.join(tmpdir(), 'ccmultihelper');
+    const cacheFile = path.join(cacheDir, 'update-check.json');
+
+    await fs.ensureDir(cacheDir);
+
+    let lastCheck = 0;
+    if (await fs.pathExists(cacheFile)) {
+      const cacheData = await fs.readJson(cacheFile);
+      lastCheck = cacheData.lastCheck || 0;
+    }
+
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+
+    if (now - lastCheck < oneDayMs) {
+      return; // Already checked recently
+    }
+
+    // Check npm registry for latest version
+    const registryUrl = `https://registry.npmjs.org/${PACKAGE_NAME}`;
+    const response = await fetch(registryUrl);
+
+    if (!response.ok) {
+      return; // Network issues, fail silently
+    }
+
+    const packageInfo = await response.json();
+    const latestVersion = packageInfo['dist-tags']?.latest;
+
+    if (latestVersion && latestVersion !== PACKAGE_VERSION) {
+      console.log(chalk.yellow('\\nUpdate available!'));
+      console.log(chalk.blue(`Current version: ${PACKAGE_VERSION}`));
+      console.log(chalk.green(`Latest version: ${latestVersion}`));
+      console.log(chalk.cyan('To update:'));
+      console.log(chalk.cyan('  npm install -g ccmultihelper@latest'));
+      console.log(chalk.cyan('  bunx ccmultihelper@latest <command>'));
+      console.log(''); // Empty line for spacing
+    }
+
+    // Update cache
+    await fs.writeJson(cacheFile, {
+      lastCheck: now,
+      currentVersion: PACKAGE_VERSION,
+      latestVersion: latestVersion || PACKAGE_VERSION
+    });
+
+  } catch (error) {
+    // Silently ignore update check failures
+    // This ensures the CLI remains functional even if network is down
+  }
+}
+
+// Auto-update check on startup (only for certain commands)
+const args = process.argv.slice(2);
+const shouldCheckUpdate = args.length === 0 ||
+                         args.includes('init') ||
+                         args.includes('--version') ||
+                         args.includes('-v');
+
+if (shouldCheckUpdate) {
+  // Run update check in background, don't block CLI execution
+  checkForUpdates().catch(() => {
+    // Silently ignore update check failures
+  });
 }
 
 program.parse();
