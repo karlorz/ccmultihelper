@@ -45,7 +45,7 @@ claude
 > /worktree-test        # Switch to test worktree
 > /sync-worktrees       # Synchronize all worktrees
 > /status-worktrees     # View worktree status
-> /create-signal claude-complete  # Trigger workflows
+> /monitor-start  # Start automated monitoring
 ```
 
 ## 🛠️ Commands
@@ -82,7 +82,6 @@ Once initialized, you'll have these slash commands available in Claude Code:
 #### Workflow Management
 - `/sync-worktrees` - Synchronize changes between worktrees
 - `/status-worktrees` - Show status of all worktrees
-- `/create-signal <type>` - Create signal files for workflow coordination
 - `/monitor-start` - Start worktree monitoring
 - `/monitor-stop` - Stop worktree monitoring
 
@@ -149,11 +148,11 @@ After initialization, your project will have:
 │   │   ├── worktree-bugfix.md
 │   │   ├── sync-worktrees.md
 │   │   ├── status-worktrees.md
-│   │   └── create-signal.md
+│   │   ├── monitor-start.md
+│   │   └── monitor-stop.md
 │   ├── hooks/
 │   │   ├── session-start.js
-│   │   ├── post-tool-use.js
-│   │   └── user-prompt-submit.js
+│   │   └── post-tool-use.js
 │   └── hooks.json
 ├── ../your-project-worktrees/
 │   ├── feature/    # Feature development
@@ -212,15 +211,16 @@ Claude Code hooks are configured in `.claude/hooks.json`:
 
 ## 🚀 Advanced Usage
 
-### Custom Signal Types
+### Custom Monitoring
 
-You can extend the system with custom signal types:
+You can extend the system with custom monitoring modes:
 
 ```bash
-# Create custom signal
-> /create-signal custom-signal-type
+# Start monitoring with custom type
+> /monitor-start -t webhook
 
-# The system will process it based on your workflow
+# Choose from auto-detect, file-monitor, or webhook modes
+# The system will process signals automatically based on your workflow
 ```
 
 ### Monitoring Modes
