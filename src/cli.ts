@@ -5,6 +5,8 @@ import inquirer from 'inquirer';
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { tmpdir } from 'os';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,18 +51,16 @@ program
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .option('-a, --auto-setup', 'Auto-setup with default configuration')
   .action(async (options) => {
-    console.log(chalk.blue('🚀 Initializing Claude Code Multi-Worktree Setup...'));
+    try {
+      console.log(chalk.blue('🚀 Initializing Claude Code Multi-Worktree Setup...'));
 
-    let projectName = options.projectName || await getProjectName();
-    const sanitizedProjectName = sanitizeProjectName(projectName);
-
-    if (!sanitizedProjectName) {
-      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      const sanitizedProjectName = await getSanitizedProjectName(options);
+      const autoSetup = options.autoSetup || await askAutoSetup();
+      await setupProject(sanitizedProjectName, autoSetup);
+    } catch (error) {
+      console.error(chalk.red('❌ Initialization failed:'), error.message);
       process.exit(1);
     }
-
-    const autoSetup = options.autoSetup || await askAutoSetup();
-    await setupProject(sanitizedProjectName, autoSetup);
   });
 
 program
@@ -68,17 +68,15 @@ program
   .description('Setup Claude Code hooks for automated workflows')
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .action(async (options) => {
-    console.log(chalk.blue('🔧 Setting up Claude Code hooks...'));
+    try {
+      console.log(chalk.blue('🔧 Setting up Claude Code hooks...'));
 
-    let projectName = options.projectName || await getProjectName();
-    const sanitizedProjectName = sanitizeProjectName(projectName);
-
-    if (!sanitizedProjectName) {
-      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      const sanitizedProjectName = await getSanitizedProjectName(options);
+      await setupClaudeHooks(sanitizedProjectName);
+    } catch (error) {
+      console.error(chalk.red('❌ Hook setup failed:'), error.message);
       process.exit(1);
     }
-
-    await setupClaudeHooks(sanitizedProjectName);
   });
 
 program
@@ -86,17 +84,15 @@ program
   .description('Create custom Claude Code slash commands')
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .action(async (options) => {
-    console.log(chalk.blue('📝 Creating custom slash commands...'));
+    try {
+      console.log(chalk.blue('📝 Creating custom slash commands...'));
 
-    let projectName = options.projectName || await getProjectName();
-    const sanitizedProjectName = sanitizeProjectName(projectName);
-
-    if (!sanitizedProjectName) {
-      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      const sanitizedProjectName = await getSanitizedProjectName(options);
+      await createCustomCommands(sanitizedProjectName);
+    } catch (error) {
+      console.error(chalk.red('❌ Command creation failed:'), error.message);
       process.exit(1);
     }
-
-    await createCustomCommands(sanitizedProjectName);
   });
 
 program
@@ -105,18 +101,16 @@ program
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .option('-t, --type <type>', 'Monitor type: auto-detect|file-monitor|webhook', 'auto-detect')
   .action(async (options) => {
-    console.log(chalk.blue('🔍 Starting worktree monitoring...'));
+    try {
+      console.log(chalk.blue('🔍 Starting worktree monitoring...'));
 
-    let projectName = options.projectName || await getProjectName();
-    const sanitizedProjectName = sanitizeProjectName(projectName);
-
-    if (!sanitizedProjectName) {
-      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      const sanitizedProjectName = await getSanitizedProjectName(options);
+      const monitorType = options.type;
+      await startMonitoring(sanitizedProjectName, monitorType);
+    } catch (error) {
+      console.error(chalk.red('❌ Monitor start failed:'), error.message);
       process.exit(1);
     }
-
-    const monitorType = options.type;
-    await startMonitoring(sanitizedProjectName, monitorType);
   });
 
 program
@@ -124,9 +118,21 @@ program
   .description('Clean up worktrees and configuration')
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .action(async (options) => {
-    console.log(chalk.yellow('🧹 Cleaning up worktrees...'));
+    try {
+      console.log(chalk.yellow('🧹 Cleaning up worktrees...'));
 
-    let projectName = options.projectName || await getProjectName();
+      const sanitizedProjectName = await getSanitizedProjectName(options);
+      await cleanupWorktrees(sanitizedProjectName);
+    } catch (error) {
+      console.error(chalk.red('❌ Cleanup failed:'), error.message);
+      process.exit(1);
+    }
+  });
+
+// Centralized validation function
+async function getSanitizedProjectName(options: { projectName?: string }): Promise<string> {
+  try {
+    let projectName = options.projectName || await getProjectNameFromPrompt();
     const sanitizedProjectName = sanitizeProjectName(projectName);
 
     if (!sanitizedProjectName) {
@@ -134,10 +140,14 @@ program
       process.exit(1);
     }
 
-    await cleanupWorktrees(sanitizedProjectName);
-  });
+    return sanitizedProjectName;
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to validate project name:'), error.message);
+    process.exit(1);
+  }
+}
 
-async function getProjectName(): Promise<string> {
+async function getProjectNameFromPrompt(): Promise<string> {
   const { projectName } = await inquirer.prompt([
     {
       type: 'input',
@@ -145,15 +155,12 @@ async function getProjectName(): Promise<string> {
       message: 'Enter project name for worktrees:',
       default: path.basename(process.cwd()),
       validate: (input) => {
-        const trimmed = input.trim();
-        if (trimmed.length === 0) {
-          return 'Project name is required';
+        const sanitized = sanitizeProjectName(input);
+        if (!sanitized) {
+          return 'Invalid project name. Use 1-50 alphanumeric characters, underscores, or hyphens.';
         }
-        if (trimmed.length > 50) {
-          return 'Project name must be 50 characters or less';
-        }
-        if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
-          return 'Project name can only contain letters, numbers, underscores, and hyphens';
+        if (sanitized !== input.trim()) {
+          return 'Project name contains invalid characters or is a reserved name.';
         }
         return true;
       }
@@ -207,59 +214,91 @@ async function setupProject(projectName: string, autoSetup: boolean) {
 }
 
 async function createClaudeDirectory() {
-  const claudeDir = path.join(process.cwd(), '.claude');
+  try {
+    const claudeDir = path.join(process.cwd(), '.claude');
 
-  await fs.ensureDir(claudeDir);
-  await fs.ensureDir(path.join(claudeDir, 'commands'));
-  await fs.ensureDir(path.join(claudeDir, 'hooks'));
+    await fs.ensureDir(claudeDir);
+    await fs.ensureDir(path.join(claudeDir, 'commands'));
+    await fs.ensureDir(path.join(claudeDir, 'hooks'));
 
-  console.log(chalk.green('✅ Created .claude directory structure'));
+    console.log(chalk.green('✅ Created .claude directory structure'));
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to create .claude directory structure:'), error.message);
+    process.exit(1);
+  }
 }
 
 async function setupWorktrees(projectName: string) {
-  const worktreesDir = path.join('..', `${projectName}-worktrees`);
+  try {
+    // Get git root for robust path resolution
+    function getGitRoot() {
+      try {
+        return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+      } catch (e) {
+        console.error(chalk.red('❌ Failed to find git repository root.'));
+        process.exit(1);
+      }
+    }
 
-  // Copy and adapt the existing setup script
-  const setupScript = path.join(__dirname, '../../setup-worktrees.sh');
+    const gitRoot = getGitRoot();
+    const worktreesDir = path.join(gitRoot, '..', `${projectName}-worktrees`);
 
-  if (fs.existsSync(setupScript)) {
-    console.log(chalk.blue('📁 Running worktree setup script...'));
-    // In a real implementation, we'd execute the script
-    console.log(chalk.green(`✅ Worktrees will be created in: ${worktreesDir}`));
-  } else {
-    console.log(chalk.yellow('⚠️  Setup script not found, creating basic worktree structure...'));
+    // Copy and adapt the existing setup script
+    const setupScript = path.join(__dirname, '../../setup-worktrees.sh');
 
-    // Create basic worktree structure
-    const worktrees = ['feature', 'test', 'docs', 'bugfix'];
-    for (const worktree of worktrees) {
-      const worktreePath = path.join(worktreesDir, worktree);
-      await fs.ensureDir(worktreePath);
+    if (fs.existsSync(setupScript)) {
+      console.log(chalk.blue('📁 Running worktree setup script...'));
+      // In a real implementation, we'd execute the script
+      console.log(chalk.green(`✅ Worktrees will be created in: ${worktreesDir}`));
+    } else {
+      console.log(chalk.yellow('⚠️  Setup script not found, creating basic worktree structure...'));
 
-      // Create launch script
-      const launchScript = `#!/bin/bash
+      // Create basic worktree structure
+      const worktrees = ['feature', 'test', 'docs', 'bugfix'];
+      for (const worktree of worktrees) {
+        const worktreePath = path.join(worktreesDir, worktree);
+        await fs.ensureDir(worktreePath);
+
+        // Create launch script
+        const launchScript = `#!/bin/bash
 # Launch Claude Code in ${worktree} worktree
 echo "Starting Claude Code in ${worktree} environment..."
 claude
 `;
-      await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
-      await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
-    }
+        await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
+        await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
+      }
 
-    console.log(chalk.green(`✅ Basic worktree structure created in: ${worktreesDir}`));
+      console.log(chalk.green(`✅ Basic worktree structure created in: ${worktreesDir}`));
+    }
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to setup worktrees:'), error.message);
+    process.exit(1);
   }
 }
 
 async function setupClaudeHooks(projectName: string) {
-  const hooksDir = path.join(process.cwd(), '.claude', 'hooks');
+  try {
+    const hooksDir = path.join(process.cwd(), '.claude', 'hooks');
 
-  // Create session start hook
-  const sessionStartHook = `#!/usr/bin/env node
+    // Create config file with project name instead of embedding in code
+    const config = {
+      projectName,
+      createdAt: new Date().toISOString(),
+      version: '1.0.0'
+    };
+    await fs.writeJSON(path.join(process.cwd(), '.claude', 'worktree-config.json'), config, { spaces: 2 });
+
+    // Create session start hook (safe template)
+    const sessionStartHook = `#!/usr/bin/env node
 // SessionStart Hook - Initialize worktree context
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const projectName = '${projectName}';
+const configPath = join(projectDir, '.claude', 'worktree-config.json');
+const config = JSON.parse(readFileSync(configPath, 'utf8'));
+const { projectName } = config;
 
 const additionalContext = \`🔄 Multi-Worktree Setup Active
 Project: \${projectName}
@@ -287,11 +326,11 @@ console.log(JSON.stringify({
 }));
 `;
 
-  await fs.writeFile(path.join(hooksDir, 'session-start.js'), sessionStartHook);
-  await fs.chmod(path.join(hooksDir, 'session-start.js'), '755');
+    await fs.writeFile(path.join(hooksDir, 'session-start.js'), sessionStartHook);
+    await fs.chmod(path.join(hooksDir, 'session-start.js'), '755');
 
-  // Create post-tool-use hook for worktree coordination
-  const postToolUseHook = `#!/usr/bin/env node
+    // Create post-tool-use hook for worktree coordination (safe template)
+    const postToolUseHook = `#!/usr/bin/env node
 // PostToolUse Hook - Auto-coordinate worktree workflows
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -299,7 +338,9 @@ import { join } from 'path';
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const { tool_name, tool_input } = input;
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const projectName = '${projectName}';
+const configPath = join(projectDir, '.claude', 'worktree-config.json');
+const config = JSON.parse(readFileSync(configPath, 'utf8'));
+const { projectName } = config;
 
 // Check for signal files and trigger workflows
 if (tool_name === 'Write' || tool_name === 'Edit') {
@@ -330,50 +371,55 @@ if (tool_name === 'Write' || tool_name === 'Edit') {
 process.exit(0);
 `;
 
-  await fs.writeFile(path.join(hooksDir, 'post-tool-use.js'), postToolUseHook);
-  await fs.chmod(path.join(hooksDir, 'post-tool-use.js'), '755');
+    await fs.writeFile(path.join(hooksDir, 'post-tool-use.js'), postToolUseHook);
+    await fs.chmod(path.join(hooksDir, 'post-tool-use.js'), '755');
 
-  // Create hooks configuration
-  const hooksConfig = {
-    hooks: {
-      SessionStart: [
-        {
-          hooks: [
-            {
-              type: "command",
-              command: "node " + path.join(hooksDir, 'session-start.js')
-            }
-          ]
-        }
-      ],
-      PostToolUse: [
-        {
-          matcher: "Write|Edit|MultiEdit",
-          hooks: [
-            {
-              type: "command",
-              command: "node " + path.join(hooksDir, 'post-tool-use.js')
-            }
-          ]
-        }
-      ]
-    }
-  };
+    // Create hooks configuration
+    const hooksConfig = {
+      hooks: {
+        SessionStart: [
+          {
+            hooks: [
+              {
+                type: "command",
+                command: "node " + path.join(hooksDir, 'session-start.js')
+              }
+            ]
+          }
+        ],
+        PostToolUse: [
+          {
+            matcher: "Write|Edit|MultiEdit",
+            hooks: [
+              {
+                type: "command",
+                command: "node " + path.join(hooksDir, 'post-tool-use.js')
+              }
+            ]
+          }
+        ]
+      }
+    };
 
-  await fs.writeJSON(path.join(process.cwd(), '.claude', 'hooks.json'), hooksConfig, { spaces: 2 });
+    await fs.writeJSON(path.join(process.cwd(), '.claude', 'hooks.json'), hooksConfig, { spaces: 2 });
 
-  console.log(chalk.green('✅ Claude Code hooks configured'));
+    console.log(chalk.green('✅ Claude Code hooks configured'));
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to setup Claude hooks:'), error.message);
+    process.exit(1);
+  }
 }
 
 async function createCustomCommands(projectName: string) {
-  const commandsDir = path.join(process.cwd(), '.claude', 'commands');
+  try {
+    const commandsDir = path.join(process.cwd(), '.claude', 'commands');
 
-  // Worktree navigation commands
-  const commands = [
-    {
-      name: 'worktree-feature',
-      description: 'Switch to feature worktree and start Claude Code',
-      content: `Navigate to feature worktree and start Claude Code for feature development.
+    // Worktree navigation commands
+    const commands = [
+      {
+        name: 'worktree-feature',
+        description: 'Switch to feature worktree and start Claude Code',
+        content: `Navigate to feature worktree and start Claude Code for feature development.
 
 The feature worktree is isolated for new feature development. Changes made here will not affect other worktrees until explicitly synchronized.
 
@@ -388,11 +434,11 @@ Current branch: feature/${projectName}
 Signal files:
 - Touch \`.claude-complete\` when feature work is complete
 - This will automatically trigger test workflow`
-    },
-    {
-      name: 'worktree-test',
-      description: 'Switch to test worktree and start Claude Code',
-      content: `Navigate to test worktree and start Claude Code for testing and validation.
+      },
+      {
+        name: 'worktree-test',
+        description: 'Switch to test worktree and start Claude Code',
+        content: `Navigate to test worktree and start Claude Code for testing and validation.
 
 The test worktree is dedicated to testing activities. It can pull changes from feature worktrees and run automated tests.
 
@@ -408,11 +454,11 @@ Current branch: test/${projectName}
 Signal files:
 - Touch \`.tests-complete\` when testing is complete
 - This will automatically trigger documentation workflow`
-    },
-    {
-      name: 'worktree-docs',
-      description: 'Switch to docs worktree and start Claude Code',
-      content: `Navigate to docs worktree and start Claude Code for documentation tasks.
+      },
+      {
+        name: 'worktree-docs',
+        description: 'Switch to docs worktree and start Claude Code',
+        content: `Navigate to docs worktree and start Claude Code for documentation tasks.
 
 The docs worktree is focused on documentation. It can pull changes from feature worktrees to update API docs, user guides, etc.
 
@@ -427,11 +473,11 @@ Current branch: docs/${projectName}
 
 Signal files:
 - Documentation updates are triggered by .tests-complete signal`
-    },
-    {
-      name: 'worktree-bugfix',
-      description: 'Switch to bugfix worktree and start Claude Code',
-      content: `Navigate to bugfix worktree and start Claude Code for bug fixing.
+      },
+      {
+        name: 'worktree-bugfix',
+        description: 'Switch to bugfix worktree and start Claude Code',
+        content: `Navigate to bugfix worktree and start Claude Code for bug fixing.
 
 The bugfix worktree is isolated for fixing bugs. Changes here can be tested and validated before merging to main.
 
@@ -447,11 +493,11 @@ Current branch: bugfix/${projectName}
 Signal files:
 - Touch \`.bugfix-complete\` when bug fix is complete
 - This will automatically trigger validation workflow`
-    },
-    {
-      name: 'sync-worktrees',
-      description: 'Synchronize changes between all worktrees',
-      content: `Synchronize changes between all worktrees to ensure everyone has the latest updates.
+      },
+      {
+        name: 'sync-worktrees',
+        description: 'Synchronize changes between all worktrees',
+        content: `Synchronize changes between all worktrees to ensure everyone has the latest updates.
 
 This command will:
 1. Check the status of all worktrees
@@ -475,11 +521,11 @@ Available actions:
 - Push local changes to remote
 - Resolve merge conflicts if any
 - View sync status for all worktrees`
-    },
-    {
-      name: 'monitor-start',
-      description: 'Start worktree monitoring service',
-      content: `Start the worktree monitoring service to enable automated coordination between worktrees.
+      },
+      {
+        name: 'monitor-start',
+        description: 'Start worktree monitoring service',
+        content: `Start the worktree monitoring service to enable automated coordination between worktrees.
 
 The monitoring service will:
 - Watch for signal files (.claude-complete, .tests-complete, etc.)
@@ -503,12 +549,12 @@ Signal files and their effects:
 - .tests-complete → Trigger documentation workflow
 - .bugfix-complete → Trigger validation workflow
 
-Logs are written to: /tmp/claude-monitor.log`
-    },
-    {
-      name: 'monitor-stop',
-      description: 'Stop worktree monitoring service',
-      content: `Stop the worktree monitoring service and clean up background processes.
+Logs are written to: ${path.join(tmpdir(), 'claude-monitor.log')}`
+      },
+      {
+        name: 'monitor-stop',
+        description: 'Stop worktree monitoring service',
+        content: `Stop the worktree monitoring service and clean up background processes.
 
 This command will:
 1. Stop all monitoring services
@@ -529,74 +575,111 @@ After stopping monitoring:
 - Manual sync commands still work
 
 To restart monitoring later, use /monitor-start`
-    }
-  ];
+      }
+    ];
 
-  for (const command of commands) {
-    const commandFile = path.join(commandsDir, `${command.name}.md`);
-    const frontmatter = `---
+    // Use Promise.all for concurrent file operations
+    const fileOperations = commands.map(async (command) => {
+      const commandFile = path.join(commandsDir, `${command.name}.md`);
+      const frontmatter = `---
 description: ${command.description}
 allowed-tools: Bash(*), Read(*), Write(*), Edit(*)
 ---
 
 `;
 
-    await fs.writeFile(commandFile, frontmatter + command.content);
-  }
+      return fs.writeFile(commandFile, frontmatter + command.content);
+    });
 
-  console.log(chalk.green('✅ Custom slash commands created'));
+    await Promise.all(fileOperations);
+
+    console.log(chalk.green('✅ Custom slash commands created'));
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to create custom commands:'), error.message);
+    process.exit(1);
+  }
 }
 
 async function startMonitoring(projectName: string, monitorType: string) {
-  console.log(chalk.blue(`🔍 Starting ${monitorType} monitoring for ${projectName}...`));
+  try {
+    console.log(chalk.blue(`🔍 Starting ${monitorType} monitoring for ${projectName}...`));
 
-  // In a real implementation, this would start the monitoring service
-  console.log(chalk.green('✅ Monitoring service started'));
-  console.log(chalk.yellow('💡 Use Ctrl+C to stop monitoring'));
+    // Use platform-agnostic temp directory
+    const logFilePath = path.join(tmpdir(), 'claude-monitor.log');
 
-  if (monitorType === 'auto-detection') {
-    console.log(chalk.blue('Auto-detection mode:'));
-    console.log('- Watching for signal files every 5 seconds');
-    console.log('- Signal files: .claude-complete, .tests-complete, .bugfix-complete');
-  } else if (monitorType === 'file-monitor') {
-    console.log(chalk.blue('File monitoring mode:'));
-    console.log('- Watching for file system changes in worktrees');
-    console.log('- Auto-commit and trigger workflows on changes');
-  } else if (monitorType === 'webhook') {
-    console.log(chalk.blue('Webhook server mode:'));
-    console.log('- HTTP server listening on port 8080');
-    console.log('- Trigger workflows via HTTP endpoints');
+    // In a real implementation, this would start the monitoring service
+    console.log(chalk.green('✅ Monitoring service started'));
+    console.log(chalk.yellow('💡 Use Ctrl+C to stop monitoring'));
+    console.log(chalk.blue(`📝 Logs written to: ${logFilePath}`));
+
+    if (monitorType === 'auto-detection') {
+      console.log(chalk.blue('Auto-detection mode:'));
+      console.log('- Watching for signal files every 5 seconds');
+      console.log('- Signal files: .claude-complete, .tests-complete, .bugfix-complete');
+    } else if (monitorType === 'file-monitor') {
+      console.log(chalk.blue('File monitoring mode:'));
+      console.log('- Watching for file system changes in worktrees');
+      console.log('- Auto-commit and trigger workflows on changes');
+    } else if (monitorType === 'webhook') {
+      console.log(chalk.blue('Webhook server mode:'));
+      console.log('- HTTP server listening on port 8080');
+      console.log('- Trigger workflows via HTTP endpoints');
+    }
+  } catch (error) {
+    console.error(chalk.red('❌ Failed to start monitoring:'), error.message);
+    process.exit(1);
   }
 }
 
 async function cleanupWorktrees(projectName: string) {
-  console.log(chalk.yellow(`🧹 Cleaning up worktrees for ${projectName}...`));
+  try {
+    console.log(chalk.yellow(`🧹 Cleaning up worktrees for ${projectName}...`));
 
-  const worktreesDir = path.join('..', `${projectName}-worktrees`);
-
-  if (await fs.pathExists(worktreesDir)) {
-    await fs.remove(worktreesDir);
-    console.log(chalk.green('✅ Worktrees directory removed'));
-  }
-
-  // Clean up .claude directory
-  const claudeDir = path.join(process.cwd(), '.claude');
-  if (await fs.pathExists(claudeDir)) {
-    // Keep custom commands but remove hooks
-    const hooksDir = path.join(claudeDir, 'hooks');
-    if (await fs.pathExists(hooksDir)) {
-      await fs.remove(hooksDir);
+    // Get git root for robust path resolution
+    function getGitRoot() {
+      try {
+        return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+      } catch (e) {
+        console.error(chalk.red('❌ Failed to find git repository root.'));
+        process.exit(1);
+      }
     }
 
-    const hooksConfig = path.join(claudeDir, 'hooks.json');
-    if (await fs.pathExists(hooksConfig)) {
-      await fs.remove(hooksConfig);
+    const gitRoot = getGitRoot();
+    const worktreesDir = path.join(gitRoot, '..', `${projectName}-worktrees`);
+
+    if (await fs.pathExists(worktreesDir)) {
+      await fs.remove(worktreesDir);
+      console.log(chalk.green('✅ Worktrees directory removed'));
     }
 
-    console.log(chalk.green('✅ Claude Code hooks removed'));
-  }
+    // Clean up .claude directory
+    const claudeDir = path.join(process.cwd(), '.claude');
+    if (await fs.pathExists(claudeDir)) {
+      // Keep custom commands but remove hooks
+      const hooksDir = path.join(claudeDir, 'hooks');
+      if (await fs.pathExists(hooksDir)) {
+        await fs.remove(hooksDir);
+      }
 
-  console.log(chalk.green('🎉 Cleanup completed'));
+      const hooksConfig = path.join(claudeDir, 'hooks.json');
+      if (await fs.pathExists(hooksConfig)) {
+        await fs.remove(hooksConfig);
+      }
+
+      const worktreeConfig = path.join(claudeDir, 'worktree-config.json');
+      if (await fs.pathExists(worktreeConfig)) {
+        await fs.remove(worktreeConfig);
+      }
+
+      console.log(chalk.green('✅ Claude Code hooks removed'));
+    }
+
+    console.log(chalk.green('🎉 Cleanup completed'));
+  } catch (error) {
+    console.error(chalk.red('❌ Cleanup failed:'), error.message);
+    process.exit(1);
+  }
 }
 
 program.parse();
