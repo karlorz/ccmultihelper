@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/karlorz/ccmultihelper/compare/v1.1.0...v1.2.0) (2025-09-20)
+
+
+### Features
+
+* implement missing status-worktrees CLI command ([0a77081](https://github.com/karlorz/ccmultihelper/commit/0a770810e9a80664b31e41a94cfcddcab76c171e))
+
 # [1.1.0](https://github.com/karlorz/ccmultihelper/compare/v1.0.2...v1.1.0) (2025-09-20)
 
 

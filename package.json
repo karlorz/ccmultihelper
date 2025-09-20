@@ -1,6 +1,6 @@
 {
   "name": "ccmultihelper",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Claude Code Multi-Worktree Helper - Automated workflows for parallel Claude Code sessions",
   "type": "module",
   "main": "dist/index.js",
