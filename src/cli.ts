@@ -150,12 +150,26 @@ program
   });
 
 program
+  .command('status-worktrees')
+  .description('View status of all worktrees')
+  .option('-p, --project-name <name>', 'Project name for worktrees')
+  .action(async (options) => {
+    try {
+      const sanitizedProjectName = await getSanitizedProjectName(options);
+      await showWorktreeStatus(sanitizedProjectName);
+    } catch (error) {
+      console.error(chalk.red('Status check failed:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
   .command('cleanup')
   .description('Clean up worktrees and configuration')
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .action(async (options) => {
     try {
-      console.log(chalk.yellow('🧹 Cleaning up worktrees...'));
+      console.log(chalk.yellow('Cleaning up worktrees...'));
 
       const sanitizedProjectName = await getSanitizedProjectName(options);
       await cleanupWorktrees(sanitizedProjectName);
@@ -750,6 +764,133 @@ async function cleanupWorktrees(projectName: string) {
   } catch (error) {
     console.error(chalk.red('Cleanup failed:'), error.message);
     process.exit(1);
+  }
+}
+
+// Worktree status functionality
+async function showWorktreeStatus(projectName: string): Promise<void> {
+  try {
+    console.log(chalk.blue(`Worktree Status for: ${projectName}`));
+    console.log('='.repeat(50));
+
+    // Get git root directory
+    const gitRoot = process.cwd();
+    const worktreesDir = path.join(path.dirname(gitRoot), `${projectName}-worktrees`);
+
+    // Check if main directory is a git repository
+    if (!fs.existsSync(path.join(gitRoot, '.git'))) {
+      console.log(chalk.red('Not a Git repository. Please run this from your project root.'));
+      return;
+    }
+
+    // Get git worktree list
+    try {
+      const worktreeList = executeGitCommand('git worktree list', gitRoot, 10000);
+      const worktreeLines = worktreeList.split('\n').filter(line => line.trim());
+
+      console.log(chalk.green('Git Worktrees:'));
+
+      if (worktreeLines.length === 0) {
+        console.log(chalk.yellow('No worktrees found'));
+        return;
+      }
+
+      // Parse worktree information
+      for (const line of worktreeLines) {
+        const parts = line.split(/\s+/);
+        if (parts.length >= 3) {
+          const worktreePath = parts[0];
+          const branchInfo = parts.slice(1).join(' ');
+
+          // Determine worktree type
+          let worktreeType = 'unknown';
+          let status = 'active';
+
+          if (worktreePath.includes('/feature/')) {
+            worktreeType = 'feature';
+          } else if (worktreePath.includes('/test/')) {
+            worktreeType = 'test';
+          } else if (worktreePath.includes('/docs/')) {
+            worktreeType = 'docs';
+          } else if (worktreePath.includes('/bugfix/')) {
+            worktreeType = 'bugfix';
+          } else if (worktreePath === gitRoot) {
+            worktreeType = 'main';
+          }
+
+          // Check if worktree directory exists
+          const exists = fs.existsSync(worktreePath);
+          if (!exists) {
+            status = 'missing';
+          }
+
+          // Display status
+          const statusColor = status === 'missing' ? chalk.red : chalk.green;
+          const typeColor = chalk.cyan;
+
+          console.log(`  ${typeColor(worktreeType.padEnd(10))} ${statusColor(status.padEnd(8))} ${worktreePath} [${branchInfo}]`);
+        }
+      }
+
+      console.log('');
+
+      // Check for signal files
+      console.log(chalk.green('Signal Files:'));
+      const signalFiles = [
+        '.claude-complete',
+        '.tests-complete',
+        '.bugfix-complete',
+        '.docs-complete'
+      ];
+
+      let hasSignals = false;
+      for (const signalFile of signalFiles) {
+        // Check in all worktree directories
+        const worktreeTypes = ['feature', 'test', 'docs', 'bugfix'];
+        for (const worktreeType of worktreeTypes) {
+          const signalPath = path.join(worktreesDir, worktreeType, signalFile);
+          if (fs.existsSync(signalPath)) {
+            const stats = await fs.stat(signalPath);
+            console.log(`  ${chalk.yellow('📄')} ${signalFile} in ${worktreeType} (created: ${stats.mtime.toLocaleString()})`);
+            hasSignals = true;
+          }
+        }
+      }
+
+      if (!hasSignals) {
+        console.log(chalk.gray('  No signal files found'));
+      }
+
+      console.log('');
+
+      // Check remote status
+      console.log(chalk.green('Remote Status:'));
+      try {
+        const remoteStatus = executeGitCommand('git status --porcelain -b', gitRoot, 10000);
+        if (remoteStatus.trim()) {
+          console.log(chalk.cyan('  Local changes:'));
+          console.log(`    ${remoteStatus.trim().replace(/\n/g, '\n    ')}`);
+        } else {
+          console.log(chalk.gray('  Working directory clean'));
+        }
+      } catch (error) {
+        console.log(chalk.gray('  Unable to check git status'));
+      }
+
+      console.log('');
+      console.log(chalk.blue('Worktree Management Commands:'));
+      console.log(chalk.cyan('  git worktree list              # List all worktrees'));
+      console.log(chalk.cyan('  git worktree add <path> <branch> # Add new worktree'));
+      console.log(chalk.cyan('  git worktree remove <path>      # Remove worktree'));
+      console.log(chalk.cyan('  git worktree prune              # Clean up stale worktrees'));
+
+    } catch (error) {
+      console.log(chalk.red('Failed to get worktree status:'), error.message);
+    }
+
+  } catch (error) {
+    console.error(chalk.red('Failed to show worktree status:'), error.message);
+    throw error;
   }
 }
 
