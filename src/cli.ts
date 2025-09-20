@@ -8,13 +8,20 @@ import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
 import { execSync } from 'child_process';
 import { createHash } from 'crypto';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Version from package.json
-const PACKAGE_VERSION = '1.1.0';
-const PACKAGE_NAME = 'ccmultihelper';
+// Read version from package.json - handle both development and compiled environments
+let packageJson;
+try {
+  // In development, __dirname is src/, so go up one level
+  packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+} catch (error) {
+  // In compiled distribution, __dirname is dist/, so go up one level
+  packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+}
+const PACKAGE_VERSION = packageJson.version;
+const PACKAGE_NAME = packageJson.name;
 
 const program = new Command();
 
