@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Version from package.json
-const PACKAGE_VERSION = '1.0.2';
+const PACKAGE_VERSION = '1.1.0';
 const PACKAGE_NAME = 'ccmultihelper';
 
 const program = new Command();
