@@ -11,6 +11,33 @@ const __dirname = path.dirname(__filename);
 
 const program = new Command();
 
+// Security function to sanitize project names and prevent path traversal attacks
+function sanitizeProjectName(name: string): string | null {
+  if (!name || typeof name !== 'string') return null;
+
+  // First, check for path traversal attempts in the original input
+  if (name.toLowerCase().includes('..') ||
+      name.includes('/') ||
+      name.includes('\\')) {
+    return null;
+  }
+
+  const sanitized = path.basename(name).trim();
+
+  // Reserved Windows filenames
+  const reservedNames = ['con', 'prn', 'aux', 'nul', 'com1', 'lpt1'];
+  if (reservedNames.includes(sanitized.toLowerCase())) {
+    return null;
+  }
+
+  // Strict validation: alphanumeric, underscore, hyphen only, max 50 chars
+  if (!/^[a-zA-Z0-9_-]{1,50}$/.test(sanitized)) {
+    return null;
+  }
+
+  return sanitized;
+}
+
 program
   .name('ccmultihelper')
   .description('Claude Code Multi-Worktree Helper - Setup automated workflows for parallel Claude Code sessions')
@@ -24,10 +51,16 @@ program
   .action(async (options) => {
     console.log(chalk.blue('🚀 Initializing Claude Code Multi-Worktree Setup...'));
 
-    const projectName = options.projectName || await getProjectName();
-    const autoSetup = options.autoSetup || await askAutoSetup();
+    let projectName = options.projectName || await getProjectName();
+    const sanitizedProjectName = sanitizeProjectName(projectName);
 
-    await setupProject(projectName, autoSetup);
+    if (!sanitizedProjectName) {
+      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      process.exit(1);
+    }
+
+    const autoSetup = options.autoSetup || await askAutoSetup();
+    await setupProject(sanitizedProjectName, autoSetup);
   });
 
 program
@@ -37,8 +70,15 @@ program
   .action(async (options) => {
     console.log(chalk.blue('🔧 Setting up Claude Code hooks...'));
 
-    const projectName = options.projectName || await getProjectName();
-    await setupClaudeHooks(projectName);
+    let projectName = options.projectName || await getProjectName();
+    const sanitizedProjectName = sanitizeProjectName(projectName);
+
+    if (!sanitizedProjectName) {
+      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      process.exit(1);
+    }
+
+    await setupClaudeHooks(sanitizedProjectName);
   });
 
 program
@@ -48,8 +88,15 @@ program
   .action(async (options) => {
     console.log(chalk.blue('📝 Creating custom slash commands...'));
 
-    const projectName = options.projectName || await getProjectName();
-    await createCustomCommands(projectName);
+    let projectName = options.projectName || await getProjectName();
+    const sanitizedProjectName = sanitizeProjectName(projectName);
+
+    if (!sanitizedProjectName) {
+      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      process.exit(1);
+    }
+
+    await createCustomCommands(sanitizedProjectName);
   });
 
 program
@@ -60,10 +107,16 @@ program
   .action(async (options) => {
     console.log(chalk.blue('🔍 Starting worktree monitoring...'));
 
-    const projectName = options.projectName || await getProjectName();
-    const monitorType = options.type;
+    let projectName = options.projectName || await getProjectName();
+    const sanitizedProjectName = sanitizeProjectName(projectName);
 
-    await startMonitoring(projectName, monitorType);
+    if (!sanitizedProjectName) {
+      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      process.exit(1);
+    }
+
+    const monitorType = options.type;
+    await startMonitoring(sanitizedProjectName, monitorType);
   });
 
 program
@@ -73,8 +126,15 @@ program
   .action(async (options) => {
     console.log(chalk.yellow('🧹 Cleaning up worktrees...'));
 
-    const projectName = options.projectName || await getProjectName();
-    await cleanupWorktrees(projectName);
+    let projectName = options.projectName || await getProjectName();
+    const sanitizedProjectName = sanitizeProjectName(projectName);
+
+    if (!sanitizedProjectName) {
+      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      process.exit(1);
+    }
+
+    await cleanupWorktrees(sanitizedProjectName);
   });
 
 async function getProjectName(): Promise<string> {
@@ -84,7 +144,19 @@ async function getProjectName(): Promise<string> {
       name: 'projectName',
       message: 'Enter project name for worktrees:',
       default: path.basename(process.cwd()),
-      validate: (input) => input.trim().length > 0 || 'Project name is required'
+      validate: (input) => {
+        const trimmed = input.trim();
+        if (trimmed.length === 0) {
+          return 'Project name is required';
+        }
+        if (trimmed.length > 50) {
+          return 'Project name must be 50 characters or less';
+        }
+        if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+          return 'Project name can only contain letters, numbers, underscores, and hyphens';
+        }
+        return true;
+      }
     }
   ]);
   return projectName.trim();
