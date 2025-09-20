@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/karlorz/ccmultihelper/compare/v1.2.1...v1.2.2) (2025-09-20)
+
+
+### Bug Fixes
+
+* add missing status-worktrees Claude Code command ([ba9e07f](https://github.com/karlorz/ccmultihelper/commit/ba9e07f975945e352268b7baee33106018f2efa9))
+
 ## [1.2.1](https://github.com/karlorz/ccmultihelper/compare/v1.2.0...v1.2.1) (2025-09-20)
 
 
