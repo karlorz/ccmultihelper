@@ -251,25 +251,65 @@ async function setupWorktrees(projectName: string) {
       // In a real implementation, we'd execute the script
       console.log(chalk.green(`✅ Worktrees will be created in: ${worktreesDir}`));
     } else {
-      console.log(chalk.yellow('⚠️  Setup script not found, creating basic worktree structure...'));
+      console.log(chalk.yellow('⚠️  Setup script not found, creating Git worktrees...'));
 
-      // Create basic worktree structure
+      // Create actual Git worktrees
       const worktrees = ['feature', 'test', 'docs', 'bugfix'];
       for (const worktree of worktrees) {
         const worktreePath = path.join(worktreesDir, worktree);
-        await fs.ensureDir(worktreePath);
+        const branchName = `${worktree}/${projectName}`;
 
-        // Create launch script
-        const launchScript = `#!/bin/bash
+        try {
+          // Remove directory if it already exists
+          if (await fs.pathExists(worktreePath)) {
+            await fs.remove(worktreePath);
+          }
+
+          // Create Git worktree with new branch
+          execSync(`git worktree add -b ${branchName} ${worktreePath}`, {
+            cwd: gitRoot,
+            stdio: 'inherit'
+          });
+
+          // Create launch script in the worktree
+          const launchScript = `#!/bin/bash
 # Launch Claude Code in ${worktree} worktree
 echo "Starting Claude Code in ${worktree} environment..."
+echo "Current branch: $(git branch --show-current)"
+echo "Worktree path: $(pwd)"
 claude
 `;
-        await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
-        await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
+          await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
+          await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
+
+          console.log(chalk.green(`✅ Created ${worktree} worktree → ${branchName}`));
+        } catch (error) {
+          // If branch already exists, just add the worktree
+          try {
+            execSync(`git worktree add ${worktreePath} ${branchName}`, {
+              cwd: gitRoot,
+              stdio: 'inherit'
+            });
+
+            // Create launch script
+            const launchScript = `#!/bin/bash
+# Launch Claude Code in ${worktree} worktree
+echo "Starting Claude Code in ${worktree} environment..."
+echo "Current branch: $(git branch --show-current)"
+echo "Worktree path: $(pwd)"
+claude
+`;
+            await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
+            await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
+
+            console.log(chalk.green(`✅ Created ${worktree} worktree → existing ${branchName}`));
+          } catch (innerError) {
+            console.log(chalk.yellow(`⚠️  Failed to create ${worktree} worktree: ${innerError.message}`));
+          }
+        }
       }
 
-      console.log(chalk.green(`✅ Basic worktree structure created in: ${worktreesDir}`));
+      console.log(chalk.green(`✅ Git worktrees created in: ${worktreesDir}`));
     }
   } catch (error) {
     console.error(chalk.red('❌ Failed to setup worktrees:'), error.message);
