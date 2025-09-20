@@ -40,6 +40,37 @@ function sanitizeProjectName(name: string): string | null {
   return sanitized;
 }
 
+// Safely sanitize project name for template usage
+function sanitizeProjectNameForTemplate(name: string): string {
+  // Remove any potentially dangerous characters for template injection
+  return name.replace(/[^\w\s-]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Helper function to create launch scripts with consistent content
+function createLaunchScript(worktreeType: string): string {
+  return `#!/bin/bash
+# Launch Claude Code in ${worktreeType} worktree
+echo "Starting Claude Code in ${worktreeType} environment..."
+echo "Current branch: $(git branch --show-current)"
+echo "Worktree path: $(pwd)"
+claude
+`;
+}
+
+// Helper function to safely execute Git commands with timeout
+function executeGitCommand(command: string, cwd: string, timeout: number = 30000): string {
+  try {
+    return execSync(command, {
+      cwd,
+      stdio: 'pipe',
+      timeout,
+      encoding: 'utf8'
+    });
+  } catch (error) {
+    throw new Error(`Git command failed: ${command} - ${error.message}`);
+  }
+}
+
 program
   .name('ccmultihelper')
   .description('Claude Code Multi-Worktree Helper - Setup automated workflows for parallel Claude Code sessions')
@@ -52,13 +83,13 @@ program
   .option('-a, --auto-setup', 'Auto-setup with default configuration')
   .action(async (options) => {
     try {
-      console.log(chalk.blue('🚀 Initializing Claude Code Multi-Worktree Setup...'));
+      console.log(chalk.blue('Initializing Claude Code Multi-Worktree Setup...'));
 
       const sanitizedProjectName = await getSanitizedProjectName(options);
       const autoSetup = options.autoSetup || await askAutoSetup();
       await setupProject(sanitizedProjectName, autoSetup);
     } catch (error) {
-      console.error(chalk.red('❌ Initialization failed:'), error.message);
+      console.error(chalk.red('Initialization failed:'), error.message);
       process.exit(1);
     }
   });
@@ -69,12 +100,12 @@ program
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .action(async (options) => {
     try {
-      console.log(chalk.blue('🔧 Setting up Claude Code hooks...'));
+      console.log(chalk.blue('Setting up Claude Code hooks...'));
 
       const sanitizedProjectName = await getSanitizedProjectName(options);
       await setupClaudeHooks(sanitizedProjectName);
     } catch (error) {
-      console.error(chalk.red('❌ Hook setup failed:'), error.message);
+      console.error(chalk.red('Hook setup failed:'), error.message);
       process.exit(1);
     }
   });
@@ -85,12 +116,12 @@ program
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .action(async (options) => {
     try {
-      console.log(chalk.blue('📝 Creating custom slash commands...'));
+      console.log(chalk.blue('Creating custom slash commands...'));
 
       const sanitizedProjectName = await getSanitizedProjectName(options);
       await createCustomCommands(sanitizedProjectName);
     } catch (error) {
-      console.error(chalk.red('❌ Command creation failed:'), error.message);
+      console.error(chalk.red('Command creation failed:'), error.message);
       process.exit(1);
     }
   });
@@ -108,7 +139,7 @@ program
       const monitorType = options.type;
       await startMonitoring(sanitizedProjectName, monitorType);
     } catch (error) {
-      console.error(chalk.red('❌ Monitor start failed:'), error.message);
+      console.error(chalk.red('Monitor start failed:'), error.message);
       process.exit(1);
     }
   });
@@ -124,7 +155,7 @@ program
       const sanitizedProjectName = await getSanitizedProjectName(options);
       await cleanupWorktrees(sanitizedProjectName);
     } catch (error) {
-      console.error(chalk.red('❌ Cleanup failed:'), error.message);
+      console.error(chalk.red('Cleanup failed:'), error.message);
       process.exit(1);
     }
   });
@@ -136,13 +167,13 @@ async function getSanitizedProjectName(options: { projectName?: string }): Promi
     const sanitizedProjectName = sanitizeProjectName(projectName);
 
     if (!sanitizedProjectName) {
-      console.error(chalk.red('❌ Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
+      console.error(chalk.red('Invalid project name. Use only letters, numbers, underscores, and hyphens (1-50 characters).'));
       process.exit(1);
     }
 
     return sanitizedProjectName;
   } catch (error) {
-    console.error(chalk.red('❌ Failed to validate project name:'), error.message);
+    console.error(chalk.red('Failed to validate project name:'), error.message);
     process.exit(1);
   }
 }
@@ -185,11 +216,11 @@ async function setupProject(projectName: string, autoSetup: boolean) {
   try {
     // Check if we're in a git repository
     if (!fs.existsSync(path.join(process.cwd(), '.git'))) {
-      console.log(chalk.red('❌ Not a Git repository. Please run this from your project root.'));
+      console.log(chalk.red('Not a Git repository. Please run this from your project root.'));
       return;
     }
 
-    console.log(chalk.green(`✅ Setting up project: ${projectName}`));
+    console.log(chalk.green(`Setting up project: ${projectName}`));
 
     // Create .claude directory structure
     await createClaudeDirectory();
@@ -202,14 +233,14 @@ async function setupProject(projectName: string, autoSetup: boolean) {
       await createCustomCommands(projectName);
     }
 
-    console.log(chalk.green('🎉 Setup completed successfully!'));
+    console.log(chalk.green('Setup completed successfully!'));
     console.log(chalk.blue('\nNext steps:'));
     console.log('1. Start monitoring: bunx ccmultihelper start-monitor');
     console.log('2. Launch Claude Code sessions in worktrees');
     console.log('3. Use slash commands like /worktree-feature, /worktree-test');
 
   } catch (error) {
-    console.error(chalk.red('❌ Setup failed:'), error);
+    console.error(chalk.red('Setup failed:'), error);
   }
 }
 
@@ -221,9 +252,9 @@ async function createClaudeDirectory() {
     await fs.ensureDir(path.join(claudeDir, 'commands'));
     await fs.ensureDir(path.join(claudeDir, 'hooks'));
 
-    console.log(chalk.green('✅ Created .claude directory structure'));
+    console.log(chalk.green('Created .claude directory structure'));
   } catch (error) {
-    console.error(chalk.red('❌ Failed to create .claude directory structure:'), error.message);
+    console.error(chalk.red('Failed to create .claude directory structure:'), error.message);
     process.exit(1);
   }
 }
@@ -235,7 +266,7 @@ async function setupWorktrees(projectName: string) {
       try {
         return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
       } catch (e) {
-        console.error(chalk.red('❌ Failed to find git repository root.'));
+        console.error(chalk.red('Failed to find git repository root.'));
         process.exit(1);
       }
     }
@@ -247,11 +278,11 @@ async function setupWorktrees(projectName: string) {
     const setupScript = path.join(__dirname, '../../setup-worktrees.sh');
 
     if (fs.existsSync(setupScript)) {
-      console.log(chalk.blue('📁 Running worktree setup script...'));
+      console.log(chalk.blue('Running worktree setup script...'));
       // In a real implementation, we'd execute the script
-      console.log(chalk.green(`✅ Worktrees will be created in: ${worktreesDir}`));
+      console.log(chalk.green(`Worktrees will be created in: ${worktreesDir}`));
     } else {
-      console.log(chalk.yellow('⚠️  Setup script not found, creating Git worktrees...'));
+      console.log(chalk.yellow('Setup script not found, creating Git worktrees...'));
 
       // Create actual Git worktrees
       const worktrees = ['feature', 'test', 'docs', 'bugfix'];
@@ -266,53 +297,47 @@ async function setupWorktrees(projectName: string) {
           }
 
           // Create Git worktree with new branch
-          execSync(`git worktree add -b ${branchName} ${worktreePath}`, {
-            cwd: gitRoot,
-            stdio: 'inherit'
-          });
+          executeGitCommand(`git worktree add -b ${branchName} ${worktreePath}`, gitRoot);
+
+          // Verify worktree was created successfully
+          const worktreeList = executeGitCommand('git worktree list', gitRoot, 10000);
+          if (!worktreeList.includes(worktreePath)) {
+            throw new Error(`Worktree creation failed for ${branchName}`);
+          }
 
           // Create launch script in the worktree
-          const launchScript = `#!/bin/bash
-# Launch Claude Code in ${worktree} worktree
-echo "Starting Claude Code in ${worktree} environment..."
-echo "Current branch: $(git branch --show-current)"
-echo "Worktree path: $(pwd)"
-claude
-`;
+          const launchScript = createLaunchScript(worktree);
           await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
           await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
 
-          console.log(chalk.green(`✅ Created ${worktree} worktree → ${branchName}`));
+          console.log(chalk.green(`Created ${worktree} worktree → ${branchName}`));
         } catch (error) {
           // If branch already exists, just add the worktree
           try {
-            execSync(`git worktree add ${worktreePath} ${branchName}`, {
-              cwd: gitRoot,
-              stdio: 'inherit'
-            });
+            executeGitCommand(`git worktree add ${worktreePath} ${branchName}`, gitRoot);
+
+            // Verify worktree was created successfully
+            const worktreeList = executeGitCommand('git worktree list', gitRoot, 10000);
+            if (!worktreeList.includes(worktreePath)) {
+              throw new Error(`Worktree creation failed for existing branch ${branchName}`);
+            }
 
             // Create launch script
-            const launchScript = `#!/bin/bash
-# Launch Claude Code in ${worktree} worktree
-echo "Starting Claude Code in ${worktree} environment..."
-echo "Current branch: $(git branch --show-current)"
-echo "Worktree path: $(pwd)"
-claude
-`;
+            const launchScript = createLaunchScript(worktree);
             await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
             await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
 
-            console.log(chalk.green(`✅ Created ${worktree} worktree → existing ${branchName}`));
+            console.log(chalk.green(`Created ${worktree} worktree → existing ${branchName}`));
           } catch (innerError) {
-            console.log(chalk.yellow(`⚠️  Failed to create ${worktree} worktree: ${innerError.message}`));
+            console.log(chalk.yellow(`Failed to create ${worktree} worktree: ${innerError.message}`));
           }
         }
       }
 
-      console.log(chalk.green(`✅ Git worktrees created in: ${worktreesDir}`));
+      console.log(chalk.green(`Git worktrees created in: ${worktreesDir}`));
     }
   } catch (error) {
-    console.error(chalk.red('❌ Failed to setup worktrees:'), error.message);
+    console.error(chalk.red('Failed to setup worktrees:'), error.message);
     process.exit(1);
   }
 }
@@ -341,7 +366,7 @@ const config = JSON.parse(readFileSync(configPath, 'utf8'));
 const { projectName } = config;
 
 const additionalContext = \`🔄 Multi-Worktree Setup Active
-Project: \${projectName}
+Project: \${sanitizeProjectNameForTemplate(projectName)}
 Worktrees: feature, test, docs, bugfix
 
 Available commands:
@@ -384,7 +409,8 @@ const { projectName } = config;
 
 // Check for signal files and trigger workflows
 if (tool_name === 'Write' || tool_name === 'Edit') {
-  const worktreesDir = join('..', \`\${projectName}-worktrees\`);
+  const safeProjectName = sanitizeProjectNameForTemplate(projectName);
+  const worktreesDir = join(path.dirname(projectDir), \`\${safeProjectName}-worktrees\`);
 
   // Check if any signal files exist and process them
   const signals = [
@@ -443,9 +469,9 @@ process.exit(0);
 
     await fs.writeJSON(path.join(process.cwd(), '.claude', 'hooks.json'), hooksConfig, { spaces: 2 });
 
-    console.log(chalk.green('✅ Claude Code hooks configured'));
+    console.log(chalk.green('Claude Code hooks configured'));
   } catch (error) {
-    console.error(chalk.red('❌ Failed to setup Claude hooks:'), error.message);
+    console.error(chalk.red('Failed to setup Claude hooks:'), error.message);
     process.exit(1);
   }
 }
@@ -633,9 +659,9 @@ allowed-tools: Bash(*), Read(*), Write(*), Edit(*)
 
     await Promise.all(fileOperations);
 
-    console.log(chalk.green('✅ Custom slash commands created'));
+    console.log(chalk.green('Custom slash commands created'));
   } catch (error) {
-    console.error(chalk.red('❌ Failed to create custom commands:'), error.message);
+    console.error(chalk.red('Failed to create custom commands:'), error.message);
     process.exit(1);
   }
 }
@@ -648,9 +674,9 @@ async function startMonitoring(projectName: string, monitorType: string) {
     const logFilePath = path.join(tmpdir(), 'claude-monitor.log');
 
     // In a real implementation, this would start the monitoring service
-    console.log(chalk.green('✅ Monitoring service started'));
+    console.log(chalk.green('Monitoring service started'));
     console.log(chalk.yellow('💡 Use Ctrl+C to stop monitoring'));
-    console.log(chalk.blue(`📝 Logs written to: ${logFilePath}`));
+    console.log(chalk.blue(`Logs written to: ${logFilePath}`));
 
     if (monitorType === 'auto-detection') {
       console.log(chalk.blue('Auto-detection mode:'));
@@ -666,7 +692,7 @@ async function startMonitoring(projectName: string, monitorType: string) {
       console.log('- Trigger workflows via HTTP endpoints');
     }
   } catch (error) {
-    console.error(chalk.red('❌ Failed to start monitoring:'), error.message);
+    console.error(chalk.red('Failed to start monitoring:'), error.message);
     process.exit(1);
   }
 }
@@ -680,7 +706,7 @@ async function cleanupWorktrees(projectName: string) {
       try {
         return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
       } catch (e) {
-        console.error(chalk.red('❌ Failed to find git repository root.'));
+        console.error(chalk.red('Failed to find git repository root.'));
         process.exit(1);
       }
     }
@@ -690,7 +716,7 @@ async function cleanupWorktrees(projectName: string) {
 
     if (await fs.pathExists(worktreesDir)) {
       await fs.remove(worktreesDir);
-      console.log(chalk.green('✅ Worktrees directory removed'));
+      console.log(chalk.green('Worktrees directory removed'));
     }
 
     // Clean up .claude directory
@@ -712,12 +738,12 @@ async function cleanupWorktrees(projectName: string) {
         await fs.remove(worktreeConfig);
       }
 
-      console.log(chalk.green('✅ Claude Code hooks removed'));
+      console.log(chalk.green('Claude Code hooks removed'));
     }
 
-    console.log(chalk.green('🎉 Cleanup completed'));
+    console.log(chalk.green('Cleanup completed'));
   } catch (error) {
-    console.error(chalk.red('❌ Cleanup failed:'), error.message);
+    console.error(chalk.red('Cleanup failed:'), error.message);
     process.exit(1);
   }
 }
