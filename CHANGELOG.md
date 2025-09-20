@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/karlorz/ccmultihelper/compare/v1.0.0...v1.0.1) (2025-09-20)
+
+
+### Bug Fixes
+
+* add missing conventional-changelog-conventionalcommits dependency ([8625a9e](https://github.com/karlorz/ccmultihelper/commit/8625a9eff8cbe5ed217052ccc47d8fc7da6ce15b))
+* configure Semantic Release to recognize security commits as patch releases ([59b2cc7](https://github.com/karlorz/ccmultihelper/commit/59b2cc70e9a92bf8ea7de63d6c774fed507f40fa))
+
 # 1.0.0 (2025-09-20)
 
 
