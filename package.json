@@ -1,0 +1,58 @@
+{
+  "name": "ccmultihelper",
+  "version": "1.0.0",
+  "description": "Claude Code Multi-Worktree Helper - Automated workflows for parallel Claude Code sessions",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ccmultihelper": "dist/cli.js",
+    "ccmh": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "bun build src/cli.ts --outfile=dist/cli.js --target=node --minify",
+    "dev": "bun run src/cli.ts",
+    "test": "bun test",
+    "prepare": "bun run build"
+  },
+  "keywords": [
+    "claude-code",
+    "worktree",
+    "automation",
+    "multi-session",
+    "git",
+    "hooks",
+    "workflow"
+  ],
+  "author": "Claude Code Community",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.0.0",
+    "chalk": "^5.3.0",
+    "inquirer": "^9.2.12",
+    "fs-extra": "^11.1.1",
+    "chokidar": "^3.5.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/inquirer": "^9.0.7",
+    "@types/fs-extra": "^11.0.4",
+    "bun": "^1.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/ccmultihelper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/ccmultihelper/issues"
+  },
+  "homepage": "https://github.com/your-username/ccmultihelper#readme"
+}
