@@ -1,3 +1,11 @@
+## [1.2.1](https://github.com/karlorz/ccmultihelper/compare/v1.2.0...v1.2.1) (2025-09-20)
+
+
+### Bug Fixes
+
+* resolve version string mismatch in published package ([c5483b2](https://github.com/karlorz/ccmultihelper/commit/c5483b27c461b018ddc358d20c4913709cdbfd44))
+* sync CLI version with package.json (1.1.0) ([bd0448b](https://github.com/karlorz/ccmultihelper/commit/bd0448b7d071635f043ec940281735fd3cc8d6b4))
+
 # [1.2.0](https://github.com/karlorz/ccmultihelper/compare/v1.1.0...v1.2.0) (2025-09-20)
 
 
