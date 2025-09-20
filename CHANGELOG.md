@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/karlorz/ccmultihelper/compare/v1.0.1...v1.0.2) (2025-09-20)
+
+
+### Bug Fixes
+
+* properly create Git worktrees instead of empty directories ([6583111](https://github.com/karlorz/ccmultihelper/commit/65831115c770e316e41450f00444a5d832bcc1a0))
+
 ## [1.0.1](https://github.com/karlorz/ccmultihelper/compare/v1.0.0...v1.0.1) (2025-09-20)
 
 
