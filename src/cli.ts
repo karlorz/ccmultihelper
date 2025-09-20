@@ -667,6 +667,38 @@ After stopping monitoring:
 - Manual sync commands still work
 
 To restart monitoring later, use /monitor-start`
+      },
+      {
+        name: 'status-worktrees',
+        description: 'View status of all worktrees and signal files',
+        content: `View comprehensive status of all worktrees including Git status, signal files, and remote synchronization.
+This command provides a complete overview of:
+- Git worktree status and health
+- Signal file presence and workflow state
+- Remote synchronization status
+- Branch cleanliness and conflicts
+Worktree status information:
+- Main repository status
+- Feature worktree (feature/${projectName})
+- Test worktree (test/${projectName})
+- Docs worktree (docs/${projectName})
+- Bugfix worktree (bugfix/${projectName})
+Signal file monitoring:
+- .claude-complete - Feature completion signal
+- .tests-complete - Test completion signal
+- .bugfix-complete - Bugfix completion signal
+- .docs-complete - Documentation completion signal
+Git status includes:
+- Branch cleanliness
+- Uncommitted changes
+- Remote synchronization
+- Worktree availability
+Use this command to:
+- Check overall project health
+- Verify workflow progress
+- Identify synchronization issues
+- Monitor signal file states
+- View remote branch status`
       }
     ];
 
