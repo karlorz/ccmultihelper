@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/karlorz/ccmultihelper/compare/v1.7.0...v1.7.1) (2025-09-21)
+
+
+### Bug Fixes
+
+* improve MCP server registration error handling and cleanup ([9eb2475](https://github.com/karlorz/ccmultihelper/commit/9eb2475541bdc295a4330204a8ef9ecf2c26afbf))
+
 # [1.7.0](https://github.com/karlorz/ccmultihelper/compare/v1.6.0...v1.7.0) (2025-09-21)
 
 
