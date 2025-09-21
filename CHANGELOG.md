@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/karlorz/ccmultihelper/compare/v1.4.0...v1.5.0) (2025-09-21)
+
+
+### Features
+
+* refactor MCP server to follow official TypeScript SDK patterns ([56fcae1](https://github.com/karlorz/ccmultihelper/commit/56fcae1e252b29b9da0ada48655f86a918bbd0d9))
+
 # [1.4.0](https://github.com/karlorz/ccmultihelper/compare/v1.3.0...v1.4.0) (2025-09-21)
 
 
