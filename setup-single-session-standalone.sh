@@ -344,12 +344,18 @@ cp src/mcp-server.js dist/mcp-server.js
 # Register the MCP server with Claude Code CLI
 echo "📋 Registering MCP server with Claude Code..."
 if command -v claude >/dev/null 2>&1; then
-    # Remove existing .mcp.json to avoid conflicts
-    rm -f .mcp.json
+    # Remove existing project-scoped server first
+    claude mcp remove worktree-orchestrator -s project 2>/dev/null || true
 
-    # Add the server using Claude CLI (this creates the correct format)
+    # Add as user-scoped server so it appears in claude mcp list
+    echo "Adding MCP server to user scope for visibility in claude mcp list..."
+    claude mcp add worktree-orchestrator node "$(pwd)/dist/mcp-server.js"
+
+    # Also add as project-scoped for local usage
+    echo "Adding MCP server to project scope for immediate use..."
     claude mcp add worktree-orchestrator --scope project node dist/mcp-server.js
-    echo "✅ MCP server registered with Claude Code"
+
+    echo "✅ MCP server registered in both user and project scopes"
 
     # Verify the configuration was created
     if [ -f ".mcp.json" ]; then

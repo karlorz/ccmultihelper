@@ -13,7 +13,7 @@
   "scripts": {
     "build": "npm run build:cli && npm run build:mcp && npm run build:session",
     "build:cli": "bun build src/cli.ts --outfile=dist/cli.js --target=node --minify",
-    "build:mcp": "bun build src/mcp-server.ts --outfile=dist/mcp-server.js --target=node --minify",
+    "build:mcp": "bun build src/mcp-server.ts --outfile=dist/mcp-server.js --target=node",
     "build:session": "bun build src/single-session.ts --outfile=dist/single-session.js --target=node --minify",
     "dev": "bun run src/cli.ts",
     "dev:mcp": "bun run src/mcp-server.ts",
