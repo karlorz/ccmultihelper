@@ -267,15 +267,176 @@ claude
     } catch (error) {
       status.push('No worktrees found');
     }
+    status.push('');
 
+    // Enhanced agent status with progress indicators
     const activeAgents = Array.from(this.agents.values()).filter(a => a.status === 'running');
-    status.push(`Active background agents: ${activeAgents.length}`);
+    const completedAgents = Array.from(this.agents.values()).filter(a => a.status === 'completed');
+    const failedAgents = Array.from(this.agents.values()).filter(a => a.status === 'failed');
 
-    for (const agent of activeAgents) {
-      status.push(`  - ${agent.id}: ${agent.task} (${agent.worktree})`);
+    status.push(`Background Agents Summary:`);
+    status.push(`  Running: ${activeAgents.length}`);
+    status.push(`  Completed: ${completedAgents.length}`);
+    status.push(`  Failed: ${failedAgents.length}`);
+    status.push('');
+
+    // Detailed active agent status
+    if (activeAgents.length > 0) {
+      status.push('Active Agents:');
+      for (const agent of activeAgents) {
+        const runtime = Math.floor((Date.now() - agent.startTime.getTime()) / 1000);
+        const runtimeStr = runtime > 60 ? `${Math.floor(runtime/60)}m ${runtime%60}s` : `${runtime}s`;
+        status.push(`  ● ${agent.id}: ${agent.task}`);
+        status.push(`    Worktree: ${agent.worktree}`);
+        status.push(`    Runtime: ${runtimeStr}`);
+        status.push(`    Session: ${agent.tmuxSession}`);
+      }
+      status.push('');
+    }
+
+    // Check for completion signals across all worktrees
+    const worktreeTypes = ['feature', 'test', 'docs', 'bugfix'];
+    const signalFiles = ['.claude-complete', '.tests-complete', '.bugfix-complete', '.docs-complete'];
+
+    status.push('Worktree Progress Indicators:');
+    for (const worktreeType of worktreeTypes) {
+      const worktreePath = path.join(this.worktreesDir, worktreeType);
+      if (await fs.pathExists(worktreePath)) {
+        status.push(`  ${worktreeType.toUpperCase()}:`);
+
+        let hasSignals = false;
+        for (const signalFile of signalFiles) {
+          const signalPath = path.join(worktreePath, signalFile);
+          if (await fs.pathExists(signalPath)) {
+            status.push(`    ✓ ${signalFile}`);
+            hasSignals = true;
+          }
+        }
+
+        if (!hasSignals) {
+          status.push(`    ○ No completion signals`);
+        }
+
+        // Check for pending changes
+        try {
+          const gitStatus = execSync('git status --porcelain', {
+            cwd: worktreePath,
+            encoding: 'utf8',
+            timeout: 3000
+          }).trim();
+
+          if (gitStatus) {
+            const changeCount = gitStatus.split('\n').length;
+            status.push(`    ⚠ ${changeCount} pending changes`);
+          } else {
+            status.push(`    ✓ No pending changes`);
+          }
+        } catch (error) {
+          status.push(`    ❓ Unable to check git status`);
+        }
+      } else {
+        status.push(`  ${worktreeType.toUpperCase()}: Not created`);
+      }
     }
 
     return status.join('\n');
+  }
+
+  async getAgentLogs(agentId: string, lines: number = 20): Promise<string> {
+    const agent = this.agents.get(agentId);
+    if (!agent) {
+      throw new Error(`Agent ${agentId} not found`);
+    }
+
+    if (!agent.tmuxSession) {
+      return 'Agent has no tmux session';
+    }
+
+    try {
+      // Capture tmux session output
+      const output = execSync(`tmux capture-pane -t ${agent.tmuxSession} -p`, {
+        encoding: 'utf8',
+        timeout: 5000
+      });
+
+      const logLines = output.split('\n').slice(-lines).join('\n');
+      return `=== Agent ${agentId} Output (last ${lines} lines) ===\n${logLines}`;
+    } catch (error) {
+      return `Error capturing agent logs: ${error.message}`;
+    }
+  }
+
+  async monitorWorktreeProgress(worktree: string, since: string = 'last-check'): Promise<string> {
+    const worktreePath = path.join(this.worktreesDir, worktree);
+
+    if (!await fs.pathExists(worktreePath)) {
+      throw new Error(`Worktree ${worktree} does not exist`);
+    }
+
+    try {
+      const progress = [];
+      progress.push(`=== ${worktree.toUpperCase()} Worktree Progress ===`);
+      progress.push(`Path: ${worktreePath}`);
+      progress.push('');
+
+      // Check for signal files
+      const signalFiles = ['.claude-complete', '.tests-complete', '.bugfix-complete', '.docs-complete'];
+      let hasSignals = false;
+
+      for (const signalFile of signalFiles) {
+        const signalPath = path.join(worktreePath, signalFile);
+        if (await fs.pathExists(signalPath)) {
+          const stats = await fs.stat(signalPath);
+          progress.push(`✓ Signal: ${signalFile} (created ${stats.mtime.toISOString()})`);
+          hasSignals = true;
+        }
+      }
+
+      if (!hasSignals) {
+        progress.push('○ No completion signals detected');
+      }
+      progress.push('');
+
+      // Get recent file changes
+      const gitStatus = execSync('git status --porcelain', {
+        cwd: worktreePath,
+        encoding: 'utf8',
+        timeout: 5000
+      }).trim();
+
+      if (gitStatus) {
+        progress.push('Recent Changes:');
+        gitStatus.split('\n').forEach(line => {
+          const status = line.substring(0, 2);
+          const file = line.substring(3);
+          const statusDesc = status.includes('M') ? 'Modified' :
+                           status.includes('A') ? 'Added' :
+                           status.includes('D') ? 'Deleted' :
+                           status.includes('??') ? 'Untracked' : 'Changed';
+          progress.push(`  ${statusDesc}: ${file}`);
+        });
+      } else {
+        progress.push('No pending changes');
+      }
+      progress.push('');
+
+      // Check running processes in the worktree
+      const activeAgent = Array.from(this.agents.values())
+        .find(a => a.worktree === worktree && a.status === 'running');
+
+      if (activeAgent) {
+        progress.push(`Active Agent: ${activeAgent.id}`);
+        progress.push(`  Task: ${activeAgent.task}`);
+        progress.push(`  Running since: ${activeAgent.startTime.toISOString()}`);
+        progress.push(`  Session: ${activeAgent.tmuxSession}`);
+      } else {
+        progress.push('No active agents in this worktree');
+      }
+
+      return progress.join('\n');
+    } catch (error) {
+      throw new Error(`Failed to monitor worktree progress: ${error.message}`);
+    }
   }
 }
 
@@ -370,6 +531,45 @@ const tools: Tool[] = [
         }
       },
       required: ['agentId']
+    }
+  },
+  {
+    name: 'worktree-agent-logs',
+    description: 'Get real-time output logs from a background agent',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: {
+          type: 'string',
+          description: 'Agent ID to get logs from'
+        },
+        lines: {
+          type: 'number',
+          description: 'Number of recent log lines to retrieve',
+          default: 20
+        }
+      },
+      required: ['agentId']
+    }
+  },
+  {
+    name: 'worktree-agent-progress',
+    description: 'Monitor file changes and progress in a worktree',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        worktree: {
+          type: 'string',
+          enum: ['feature', 'test', 'docs', 'bugfix'],
+          description: 'Worktree to monitor for changes'
+        },
+        since: {
+          type: 'string',
+          description: 'Monitor changes since this timestamp (ISO string)',
+          default: 'last-check'
+        }
+      },
+      required: ['worktree']
     }
   },
   {
@@ -469,6 +669,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const result = await orchestrator.integrateChanges(sourceWorktree, targetBranch);
         return {
           content: [{ type: 'text', text: result }]
+        };
+      }
+
+      case 'worktree-agent-logs': {
+        const { agentId, lines = 20 } = args as {
+          agentId: string;
+          lines?: number;
+        };
+        const logs = await orchestrator.getAgentLogs(agentId, lines);
+        return {
+          content: [{ type: 'text', text: logs }]
+        };
+      }
+
+      case 'worktree-agent-progress': {
+        const { worktree, since = 'last-check' } = args as {
+          worktree: string;
+          since?: string;
+        };
+        const progress = await orchestrator.monitorWorktreeProgress(worktree, since);
+        return {
+          content: [{ type: 'text', text: progress }]
         };
       }
 
