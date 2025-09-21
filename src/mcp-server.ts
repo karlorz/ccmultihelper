@@ -14,6 +14,15 @@ import {
 import { execSync, spawn } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get package version dynamically
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packagePath = path.join(__dirname, '..', 'package.json');
+const packageJson = fs.readJsonSync(packagePath);
+const VERSION = packageJson.version;
 
 interface BackgroundAgent {
   id: string;
@@ -443,7 +452,7 @@ claude
 const server = new Server(
   {
     name: 'worktree-orchestrator',
-    version: '1.0.0',
+    version: VERSION,
   },
   {
     capabilities: {

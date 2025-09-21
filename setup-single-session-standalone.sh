@@ -20,13 +20,23 @@ fi
 echo "📁 Creating project structure..."
 mkdir -p {src,dist,.claude/{commands,hooks}}
 
+# Get the latest package version from GitHub
+echo "📡 Fetching latest version..."
+LATEST_VERSION=$(curl -s https://raw.githubusercontent.com/karlorz/ccmultihelper/main/package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)",/\1/')
+if [ -z "$LATEST_VERSION" ]; then
+    echo "⚠️  Could not fetch latest version, using fallback version 1.3.0"
+    LATEST_VERSION="1.3.0"
+else
+    echo "✅ Latest version: $LATEST_VERSION"
+fi
+
 # Create package.json if it doesn't exist
 if [ ! -f "package.json" ]; then
     echo "📦 Creating package.json..."
     cat > package.json << EOF
 {
   "name": "$(basename $(pwd))-worktree-orchestrator",
-  "version": "1.0.0",
+  "version": "$LATEST_VERSION",
   "type": "module",
   "scripts": {
     "build": "bun build src/mcp-server.js --outfile=dist/mcp-server.js --target=node",
@@ -66,9 +76,15 @@ else
     npm install
 fi
 
-# Create MCP server (JavaScript version for simplicity)
+# Create MCP server (Download latest version)
 echo "🔨 Creating MCP server..."
-cat > src/mcp-server.js << 'EOF'
+echo "Downloading latest MCP server from GitHub..."
+curl -s https://raw.githubusercontent.com/karlorz/ccmultihelper/main/dist/mcp-server.js > dist/mcp-server.js
+
+if [ ! -s dist/mcp-server.js ]; then
+    echo "⚠️  Failed to download MCP server, creating fallback version..."
+    # Fallback to embedded version
+    cat > src/mcp-server.js << 'EOF'
 #!/usr/bin/env node
 /**
  * Worktree Orchestrator MCP Server
@@ -84,6 +100,15 @@ import {
 import { execSync } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get package version dynamically
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packagePath = path.join(__dirname, '..', 'package.json');
+const packageJson = fs.readJsonSync(packagePath);
+const VERSION = packageJson.version;
 
 class WorktreeOrchestrator {
   constructor() {
@@ -213,7 +238,7 @@ claude
 const server = new Server(
   {
     name: 'worktree-orchestrator',
-    version: '1.0.0',
+    version: VERSION,
   },
   {
     capabilities: {
@@ -337,9 +362,14 @@ main().catch((error) => {
 });
 EOF
 
-# Copy to dist directory
+    # Copy fallback to dist directory
+    cp src/mcp-server.js dist/mcp-server.js
+else
+    echo "✅ Successfully downloaded latest MCP server"
+fi
+
+# Prepare distribution files if needed
 echo "📦 Preparing distribution files..."
-cp src/mcp-server.js dist/mcp-server.js
 
 # Register the MCP server with Claude Code CLI
 echo "📋 Registering MCP server with Claude Code..."
@@ -439,7 +469,7 @@ cat > .claude/worktree-config.json << EOF
   "mode": "single-session",
   "mcpServer": "worktree-orchestrator",
   "createdAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "version": "2.0.0"
+  "version": "$LATEST_VERSION"
 }
 EOF
 

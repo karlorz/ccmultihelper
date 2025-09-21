@@ -376,7 +376,7 @@ async function setupClaudeHooks(projectName: string) {
     const config = {
       projectName,
       createdAt: new Date().toISOString(),
-      version: '1.0.0'
+      version: packageJson.version
     };
     await fs.writeJSON(path.join(process.cwd(), '.claude', 'worktree-config.json'), config, { spaces: 2 });
 
