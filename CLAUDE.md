@@ -4,16 +4,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Git worktree setup example for running multiple Claude Code sessions in parallel. The repository contains a bash script and documentation for setting up isolated development environments using Git worktrees, following official Claude Code parallel development patterns.
+This is a Claude Code Multi-Worktree Helper implementing single-session parallel worktree automation with MCP (Model Context Protocol) server orchestration. The repository contains both traditional multi-session tools and a modern MCP-based single-session architecture.
+
+### Key Components
+
+1. **MCP Server** (`src/mcp-server.ts`): Core orchestration server implementing official MCP patterns
+2. **CLI Tools** (`src/cli.ts`): Legacy multi-session setup utilities
+3. **Standalone Setup** (`setup-single-session-standalone.sh`): Self-contained deployment script
+4. **Documentation**: Comprehensive guides for both architectures
+
+## MCP Development Guidelines
+
+**Important**: When developing MCP server features, follow the official Model Context Protocol guidelines:
+
+- **Official Documentation**: See `llms-full.txt` for complete MCP specification
+- **Development Guide**: See `MCP-DEVELOPMENT-GUIDE.md` for our implementation patterns
+- **Reference Example**: Follow patterns from `@modelcontextprotocol/server-filesystem`
+- **Official Servers Repo**: https://github.com/modelcontextprotocol/servers
+
+### MCP Server Architecture
+
+Our MCP server implements 8 core tools following official patterns:
+- `worktree-create` - Worktree management
+- `worktree-spawn-agent` - Background agent orchestration
+- `worktree-status` - Comprehensive status reporting
+- `worktree-agent-status` - Agent lifecycle monitoring
+- `worktree-agent-logs` - Real-time output streaming
+- `worktree-agent-progress` - File change monitoring
+- `worktree-kill-agent` - Agent termination
+- `worktree-integrate` - Branch integration
 
 ## Architecture
 
-The project consists of two main components:
+The project supports two architectures:
 
-1. **setup-worktrees.sh** (lines 1-132): Main bash script that creates parallel Git worktrees for different development tasks
-2. **README.md** (lines 1-200): Comprehensive documentation with usage instructions and best practices
+### **Modern Single-Session Architecture (Recommended)**
+1. **MCP Server** (`src/mcp-server.ts`): Background agent orchestration with 8 tools
+2. **Standalone Setup** (`setup-single-session-standalone.sh`): Self-contained deployment
+3. **Dynamic Versioning**: Automatic sync with package.json releases
 
-The setup creates four standardized worktrees:
+### **Legacy Multi-Session Architecture**
+1. **CLI Tools** (`src/cli.ts`): Traditional multi-session setup utilities
+2. **Setup Script** (`setup-worktrees.sh`): Basic worktree creation
+3. **Manual Coordination**: Requires multiple Claude Code instances
+
+Both architectures create four standardized worktrees:
 - **feature/**: For new feature development
 - **test/**: For testing and validation work
 - **docs/**: For documentation tasks
@@ -371,6 +406,50 @@ All automation methods create detailed logs:
 - **Resource management**: Monitor system resources with multiple automation processes
 
 This automation transforms basic worktrees into a **self-coordinating development system** where Claude Code agents can automatically detect and respond to each other's work.
+
+## MCP Development Workflow
+
+When working on MCP server features in this project:
+
+### Development Guidelines
+1. **Follow Official Patterns**: Reference `MCP-DEVELOPMENT-GUIDE.md` and `llms-full.txt`
+2. **Use Official Examples**: Study `@modelcontextprotocol/server-filesystem` implementation
+3. **Test Thoroughly**: Verify MCP tools with `bun run test`
+4. **Version Consistency**: Changes automatically sync with `package.json` version
+
+### Building and Testing MCP Features
+```bash
+# Build MCP server with latest changes
+bun run build:mcp
+
+# Test MCP functionality
+bun run test
+
+# Register for local testing
+laude mcp add worktree-orchestrator --scope project node dist/mcp-server.js
+
+# Verify tools are available
+claude mcp get worktree-orchestrator
+```
+
+### MCP Tool Development Pattern
+1. **Add tool schema** to `tools` array in `src/mcp-server.ts`
+2. **Implement handler** in `CallToolRequestSchema` switch statement
+3. **Add orchestrator method** for tool logic
+4. **Test integration** with Claude Code
+5. **Update documentation** in README.md
+
+### Release Process
+```bash
+# Automated versioning updates all MCP components
+bun run release
+
+# Version automatically syncs across:
+# - package.json
+# - MCP server version
+# - Config file versions
+# - Standalone setup script
+```
 
 ## Cleanup
 
