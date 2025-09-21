@@ -1,18 +1,25 @@
 {
   "name": "ccmultihelper",
   "version": "1.2.2",
-  "description": "Claude Code Multi-Worktree Helper - Automated workflows for parallel Claude Code sessions",
+  "description": "Claude Code Multi-Worktree Helper - Single-session parallel worktree automation with MCP server",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "ccmultihelper": "dist/cli.js",
-    "ccmh": "dist/cli.js"
+    "ccmh": "dist/cli.js",
+    "worktree-orchestrator": "dist/mcp-server.js",
+    "worktree-session": "dist/single-session.js"
   },
   "scripts": {
-    "build": "bun build src/cli.ts --outfile=dist/cli.js --target=node --minify",
+    "build": "npm run build:cli && npm run build:mcp && npm run build:session",
+    "build:cli": "bun build src/cli.ts --outfile=dist/cli.js --target=node --minify",
+    "build:mcp": "bun build src/mcp-server.ts --outfile=dist/mcp-server.js --target=node --minify",
+    "build:session": "bun build src/single-session.ts --outfile=dist/single-session.js --target=node --minify",
     "dev": "bun run src/cli.ts",
+    "dev:mcp": "bun run src/mcp-server.ts",
+    "dev:session": "bun run src/single-session.ts",
     "test": "bun test",
-    "prepare": "bun run build",
+    "prepare": "npm run build",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run"
   },
@@ -20,7 +27,11 @@
     "claude-code",
     "worktree",
     "automation",
-    "multi-session",
+    "single-session",
+    "mcp",
+    "mcp-server",
+    "orchestration",
+    "background-agents",
     "git",
     "hooks",
     "workflow"
@@ -32,7 +43,8 @@
     "chalk": "^5.3.0",
     "inquirer": "^9.2.12",
     "fs-extra": "^11.1.1",
-    "chokidar": "^3.5.3"
+    "chokidar": "^3.5.3",
+    "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
