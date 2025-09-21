@@ -176,7 +176,7 @@ afterEach(() => {
 });
 
 test('CLI init creates proper Git worktrees', () => {
-  const result = runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  const result = runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   expect(result.code).toBe(0);
   expect(result.stdout).toContain('Git worktrees created');
@@ -184,7 +184,7 @@ test('CLI init creates proper Git worktrees', () => {
 });
 
 test('Git worktrees are properly registered', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const worktreeList = execSync('git worktree list', { cwd: testRepo, encoding: 'utf8' });
 
@@ -195,7 +195,7 @@ test('Git worktrees are properly registered', () => {
 });
 
 test('Worktree directories contain actual project files', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const worktreesDir = join(dirname(testRepo), `${testProjectName}-worktrees`);
 
@@ -217,7 +217,7 @@ test('Worktree directories contain actual project files', () => {
 });
 
 test('Worktrees are on correct branches', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const worktreesDir = join(dirname(testRepo), `${testProjectName}-worktrees`);
 
@@ -237,7 +237,7 @@ test('Worktrees are on correct branches', () => {
 });
 
 test('Worktrees can make independent commits', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const worktreesDir = join(dirname(testRepo), `${testProjectName}-worktrees`);
   const featurePath = join(worktreesDir, 'feature');
@@ -257,7 +257,7 @@ test('Worktrees can make independent commits', () => {
 });
 
 test('CLI creates .claude directory structure', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const claudeDir = join(testRepo, '.claude');
   expect(fs.existsSync(claudeDir)).toBe(true);
@@ -267,15 +267,15 @@ test('CLI creates .claude directory structure', () => {
 
 test('Error handling for invalid project names', () => {
   // Test project name with path traversal
-  const result = runCLI(testRepo, ['init', '--project-name', '../malicious', '--auto-setup']);
+  const result = runCLI(testRepo, ['init', '--legacy', '--project-name', '../malicious', '--auto-setup']);
   expect(result.code).not.toBe(0);
   expect(result.stderr).toContain('Invalid project name');
 });
 
 test('Error handling for existing worktrees', () => {
   // Run init twice
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
-  const result = runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
+  const result = runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   // Should handle gracefully with warnings
   expect(result.stdout).toContain('Failed to create');
@@ -283,7 +283,7 @@ test('Error handling for existing worktrees', () => {
 });
 
 test('Launch scripts are executable', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const worktreesDir = join(dirname(testRepo), `${testProjectName}-worktrees`);
   const launchScript = join(worktreesDir, 'feature', 'launch-claude.sh');
@@ -303,7 +303,7 @@ test('Launch scripts are executable', () => {
 });
 
 test('Worktree branch naming convention', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const worktreeList = execSync('git worktree list', { cwd: testRepo, encoding: 'utf8' });
 
@@ -315,7 +315,7 @@ test('Worktree branch naming convention', () => {
 });
 
 test('Worktree paths are correct', () => {
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   const expectedWorktreesDir = join(dirname(testRepo), `${testProjectName}-worktrees`);
   const worktreeList = execSync('git worktree list', { cwd: testRepo, encoding: 'utf8' });
@@ -329,13 +329,13 @@ test('Worktree paths are correct', () => {
 
 test('No duplicate branches created on re-init', () => {
   // Initial setup
-  runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   // Get initial branch count
   const initialBranches = execSync('git branch -a', { cwd: testRepo, encoding: 'utf8' });
 
   // Re-initialize
-  const result = runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  const result = runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   // Should handle gracefully
   expect(result.code).toBe(0) || expect(result.stdout).toContain('Failed');
@@ -351,7 +351,7 @@ test('Worktree cleanup on failure', () => {
   fs.ensureDirSync(join(worktreesDir, 'feature'));
 
   // Run init (should handle existing directories)
-  const result = runCLI(testRepo, ['init', '--project-name', testProjectName, '--auto-setup']);
+  const result = runCLI(testRepo, ['init', '--legacy', '--project-name', testProjectName, '--auto-setup']);
 
   // Should still succeed or fail gracefully
   expect(result.code === 0 || result.stdout.includes('Failed')).toBe(true);

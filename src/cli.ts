@@ -85,21 +85,30 @@ function executeGitCommand(command: string, cwd: string, timeout: number = 30000
 
 program
   .name('ccmultihelper')
-  .description('Claude Code Multi-Worktree Helper - Setup automated workflows for parallel Claude Code sessions')
+  .description('Claude Code Multi-Worktree Helper - Modern single-session MCP-based parallel worktree automation')
   .version(PACKAGE_VERSION);
 
 program
   .command('init')
-  .description('Initialize multi-worktree setup in current project')
+  .description('Initialize single-session worktree orchestration (default: modern MCP-based setup)')
   .option('-p, --project-name <name>', 'Project name for worktrees')
   .option('-a, --auto-setup', 'Auto-setup with default configuration')
+  .option('--legacy', 'Use legacy multi-session setup instead of modern single-session')
   .action(async (options) => {
     try {
-      console.log(chalk.blue('Initializing Claude Code Multi-Worktree Setup...'));
+      console.log(chalk.blue('🚀 Initializing Claude Code Multi-Worktree Setup...'));
 
-      const sanitizedProjectName = await getSanitizedProjectName(options);
-      const autoSetup = options.autoSetup || await askAutoSetup();
-      await setupProject(sanitizedProjectName, autoSetup);
+      if (options.legacy) {
+        // Legacy multi-session setup
+        console.log(chalk.yellow('Using legacy multi-session approach'));
+        const sanitizedProjectName = await getSanitizedProjectName(options);
+        const autoSetup = options.autoSetup || await askAutoSetup();
+        await setupProject(sanitizedProjectName, autoSetup);
+      } else {
+        // Default: Modern single-session setup
+        console.log(chalk.green('Using modern single-session MCP-based setup'));
+        await runSingleSessionSetup(options.projectName);
+      }
     } catch (error) {
       console.error(chalk.red('Initialization failed:'), error.message);
       process.exit(1);
@@ -118,6 +127,20 @@ program
       await setupClaudeHooks(sanitizedProjectName);
     } catch (error) {
       console.error(chalk.red('Hook setup failed:'), error.message);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('setup')
+  .description('Run single-session MCP-based worktree setup (same as init without --legacy)')
+  .option('-p, --project-name <name>', 'Project name for worktrees')
+  .action(async (options) => {
+    try {
+      console.log(chalk.blue('🚀 Running Single-Session MCP-based Setup...'));
+      await runSingleSessionSetup(options.projectName);
+    } catch (error) {
+      console.error(chalk.red('Setup failed:'), error.message);
       process.exit(1);
     }
   });
@@ -236,6 +259,68 @@ async function askAutoSetup(): Promise<boolean> {
     }
   ]);
   return autoSetup;
+}
+
+async function runSingleSessionSetup(projectName?: string): Promise<void> {
+  try {
+    // Check if we're in a git repository
+    if (!fs.existsSync(path.join(process.cwd(), '.git'))) {
+      console.log(chalk.red('❌ Error: Not a Git repository. Please run this from your project root.'));
+      process.exit(1);
+    }
+
+    console.log(chalk.blue('📦 Running modern single-session setup...'));
+
+    // Get the setup script path
+    const setupScriptPath = path.join(__dirname, '..', 'setup-single-session-standalone.sh');
+
+    if (!fs.existsSync(setupScriptPath)) {
+      console.log(chalk.red('❌ Setup script not found. Installing from package...'));
+      // If script doesn't exist, we're running from npm package, so copy it
+      await copySetupScriptFromPackage();
+    }
+
+    // Make script executable
+    await fs.chmod(setupScriptPath, '755');
+
+    // Run the setup script
+    const projectArg = projectName || path.basename(process.cwd());
+    console.log(chalk.blue(`🚀 Setting up Single-Session Worktree Orchestration for: ${projectArg}`));
+
+    execSync(`bash "${setupScriptPath}" "${projectArg}"`, {
+      stdio: 'inherit',
+      cwd: process.cwd()
+    });
+
+    console.log(chalk.green('✅ Single-session setup completed successfully!'));
+    console.log(chalk.blue('\n🎯 Next Steps:'));
+    console.log('1. Restart Claude Code: claude');
+    console.log('2. Use natural language: "Create a feature worktree called my-feature"');
+    console.log('3. Monitor progress: "Show me the status of all worktrees"');
+
+  } catch (error) {
+    console.error(chalk.red('❌ Single-session setup failed:'), error.message);
+    process.exit(1);
+  }
+}
+
+async function copySetupScriptFromPackage(): Promise<void> {
+  try {
+    // When installed via npm, the script should be in the package
+    const packageDir = path.dirname(require.resolve('ccmultihelper/package.json'));
+    const sourceScript = path.join(packageDir, 'setup-single-session-standalone.sh');
+    const targetScript = path.join(process.cwd(), 'setup-single-session-standalone.sh');
+
+    if (fs.existsSync(sourceScript)) {
+      await fs.copyFile(sourceScript, targetScript);
+      console.log(chalk.green('📋 Setup script copied to current directory'));
+    } else {
+      throw new Error('Setup script not found in package');
+    }
+  } catch (error) {
+    console.error(chalk.red('Failed to copy setup script:'), error.message);
+    throw error;
+  }
 }
 
 async function setupProject(projectName: string, autoSetup: boolean) {

@@ -67,6 +67,7 @@
   "files": [
     "dist",
     "templates",
+    "setup-single-session-standalone.sh",
     "README.md"
   ],
   "repository": {

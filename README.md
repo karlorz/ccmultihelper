@@ -21,14 +21,41 @@ This project has been completely **refactored to follow official MCP guidelines*
 ### Prerequisites
 
 Before starting, ensure you have:
-- **Node.js 18+** and **bun** (recommended) or **npm** installed
+- **Node.js 18+** installed
 - **Git repository** initialized in your project
 - **tmux** installed (`brew install tmux` on macOS, `apt install tmux` on Ubuntu)
 - **Claude Code** installed globally
 
-> **Note**: The setup script uses **bun** by default for faster installation and builds, but falls back to npm if bun is not available.
+### Option 1: One-Command Setup (Recommended)
 
-### Option 1: Quick Setup (Existing Project)
+```bash
+# 1. Navigate to your Git repository
+cd /path/to/your/existing/project
+
+# 2. Run single-session setup with bunx (no installation needed)
+bunx ccmultihelper init
+
+# 3. Start Claude Code with orchestrator
+claude
+```
+
+### Option 2: Install and Use
+
+```bash
+# 1. Install globally
+npm install -g ccmultihelper
+
+# 2. Navigate to your Git repository
+cd /path/to/your/existing/project
+
+# 3. Initialize single-session setup
+ccmultihelper init
+
+# 4. Start Claude Code
+claude
+```
+
+### Option 3: Standalone Script (Advanced)
 
 ```bash
 # 1. Navigate to your Git repository
@@ -43,7 +70,7 @@ chmod +x setup-single-session-standalone.sh
 claude
 ```
 
-### Option 2: Try It First (Demo Project)
+### Option 4: Try It First (Demo Project)
 
 ```bash
 # 1. Clone this repository to try it out
@@ -181,21 +208,34 @@ The refactored orchestrator provides these tools through the modern MCP server. 
 
 > **Note**: You don't need to use the technical tool names directly. Claude Code will automatically map your natural language requests to the appropriate MCP tools.
 
-### Legacy CLI Commands (ccmultihelper)
+### CLI Commands (ccmultihelper)
 
-For compatibility, the traditional multi-session CLI is still available:
+> **Recommendation**: Use the modern single-session approach for new projects. The legacy multi-session mode is maintained for compatibility.
 
+The package provides both modern single-session and legacy multi-session approaches:
+
+#### Modern Single-Session (Default)
 ```bash
-# Initialize setup
-bunx ccmultihelper init [-p project-name] [-a]
+# Initialize single-session setup (default behavior)
+bunx ccmultihelper init [-p project-name]
 
-# Setup Claude Code hooks
+# Or install and use
+npm install -g ccmultihelper
+ccmultihelper init [-p project-name]
+```
+
+#### Legacy Multi-Session Mode
+```bash
+# Initialize legacy multi-session setup
+bunx ccmultihelper init --legacy [-p project-name] [-a]
+
+# Setup Claude Code hooks (legacy)
 bunx ccmultihelper setup-hooks
 
-# Create custom slash commands
+# Create custom slash commands (legacy)
 bunx ccmultihelper create-commands
 
-# Start monitoring service
+# Start monitoring service (legacy)
 bunx ccmultihelper start-monitor [-t auto-detect|file-monitor|webhook]
 
 # Clean up everything
