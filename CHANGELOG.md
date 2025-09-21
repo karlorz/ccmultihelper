@@ -1,3 +1,10 @@
+## [1.2.4](https://github.com/karlorz/ccmultihelper/compare/v1.2.3...v1.2.4) (2025-09-21)
+
+
+### Bug Fixes
+
+* complete setup script with all dependencies and MCP server fixes ([8b27874](https://github.com/karlorz/ccmultihelper/commit/8b2787422de21ca5bc654f5fe4849e67dc778fd1))
+
 ## [1.2.3](https://github.com/karlorz/ccmultihelper/compare/v1.2.2...v1.2.3) (2025-09-21)
 
 
