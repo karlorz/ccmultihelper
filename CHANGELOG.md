@@ -1,3 +1,11 @@
+## [1.2.3](https://github.com/karlorz/ccmultihelper/compare/v1.2.2...v1.2.3) (2025-09-21)
+
+
+### Bug Fixes
+
+* Update docs for natural language MCP commands ([bb4a533](https://github.com/karlorz/ccmultihelper/commit/bb4a533c6669605aca5fa40209403e3e238125ad))
+* Update setup scripts and README for standalone workflow ([971b1ea](https://github.com/karlorz/ccmultihelper/commit/971b1ea66ec1dc64ae3d29329f83120795de99a5))
+
 ## [1.2.2](https://github.com/karlorz/ccmultihelper/compare/v1.2.1...v1.2.2) (2025-09-20)
 
 
