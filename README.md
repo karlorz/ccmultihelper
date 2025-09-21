@@ -1,56 +1,157 @@
 # Claude Code Multi-Worktree Helper
 
-> 🚀 **Automated workflows for parallel Claude Code sessions using native Claude Code hooks and commands**
+> 🚀 **Single-session parallel worktree automation with MCP server orchestration**
 
-## ✨ What's New?
+## ✨ What's New in v2.0?
 
-This project has been transformed into a proper npm package that leverages **Claude Code's native hooks and custom commands** for seamless workflow automation.
+This project has been completely redesigned with a **single-session architecture** that eliminates the complexity of managing multiple Claude Code sessions. Now uses an **MCP server** for background agent orchestration.
 
 ### Key Features
 
-- 🎯 **Native Claude Code Integration**: Uses Claude Code's built-in hooks and slash commands
-- 🔄 **Automated Workflows**: Signal file-based coordination between worktrees
-- 📦 **npm Package**: Easy installation with `bunx ccmultihelper`
-- 🔧 **Zero Configuration**: Auto-detects project setup and configures hooks
-- 🎨 **Interactive CLI**: User-friendly command-line interface
+- 🎯 **Single-Session Architecture**: One Claude Code session manages everything
+- 🤖 **Background Agent System**: Parallel work handled by tmux-based agents
+- 🔧 **MCP Server Integration**: Model Context Protocol server for tool orchestration
+- 🎨 **Natural Language Commands**: Intuitive slash commands for all operations
+- 🔄 **Automatic Workflow Coordination**: Signal files trigger background workflows
+- 📦 **Self-Contained Setup**: No external dependencies required
 
 ## 🚀 Quick Start
 
-### 1. Install and Initialize
+### Prerequisites
+
+Before starting, ensure you have:
+- **Node.js 18+** and **npm** installed
+- **Git repository** initialized in your project
+- **tmux** installed (`brew install tmux` on macOS, `apt install tmux` on Ubuntu)
+- **Claude Code** installed globally
+
+### Option 1: Quick Setup (Existing Project)
 
 ```bash
-# Navigate to your Git repository
-cd /path/to/your/project
+# 1. Navigate to your Git repository
+cd /path/to/your/existing/project
 
-# Initialize multi-worktree setup
-bunx ccmultihelper init
+# 2. Download and run the setup script
+curl -O https://raw.githubusercontent.com/karlorz/ccmultihelper/main/setup-single-session.sh
+chmod +x setup-single-session.sh
+./setup-single-session.sh
+
+# 3. Start Claude Code with orchestrator
+claude
 ```
 
-### 2. Choose Setup Options
-
-The CLI will guide you through:
-- Project naming
-- Auto-setup preferences
-- Claude Code hooks configuration
-- Custom commands creation
-
-### 3. Start Using Worktrees
+### Option 2: Try It First (Demo Project)
 
 ```bash
-# Use native Claude Code slash commands
+# 1. Clone this repository to try it out
+git clone https://github.com/karlorz/ccmultihelper.git
+cd ccmultihelper
+
+# 2. Run the setup script
+./setup-single-session.sh demo-project
+
+# 3. Start Claude Code
 claude
 
-# In Claude Code session:
-> /worktree-feature     # Switch to feature worktree
-> /worktree-test        # Switch to test worktree
-> /sync-worktrees       # Synchronize all worktrees
-> /status-worktrees     # View worktree status
-> /monitor-start  # Start automated monitoring
+# 4. Try the demo commands
+# /worktree-create-feature "hello-world"
+# /worktree-status
 ```
 
-## 🛠️ Commands
+### Verify Setup Success
 
-### CLI Commands
+After running the setup script, you should see:
+
+```bash
+✅ Single-session setup complete!
+
+🎯 Next Steps:
+1. Start Claude Code: claude
+2. Use commands like: /worktree-create-feature "my-feature"
+3. Spawn background agents: /worktree-spawn-agent feature "implement feature"
+4. Monitor progress: /worktree-status
+```
+
+If you see this message, the setup was successful!
+
+### What Happens During Setup
+
+The setup script automatically:
+- ✅ **Installs dependencies** - Downloads MCP SDK and builds components
+- ✅ **Builds MCP server** - Compiles TypeScript to JavaScript
+- ✅ **Configures Claude Code** - Sets up hooks and MCP server integration
+- ✅ **Creates project config** - Generates worktree configuration
+- ✅ **Verifies installation** - Checks all components are working
+
+### First Commands to Try
+
+```bash
+# Start Claude Code in your project
+claude
+
+# In your Claude Code session, try these commands:
+/worktree-create-feature "user-authentication"    # Create feature worktree
+/worktree-spawn-agent feature "Build login form"  # Start background work
+/worktree-status                                   # Check everything
+/worktree-agent-status                            # Monitor agents
+/help                                             # See all commands
+```
+
+### Quick Troubleshooting
+
+**Setup script fails:**
+```bash
+# Check Node.js version
+node --version  # Should be 18+
+
+# Install dependencies manually
+npm install
+
+# Re-run setup
+./setup-single-session.sh
+```
+
+**Commands not working in Claude:**
+```bash
+# Restart Claude Code to pick up new configuration
+# Check if MCP server is configured
+cat .claude/mcp-servers.json
+```
+
+**No worktrees created:**
+```bash
+# Verify you're in a Git repository
+git status
+
+# Check if worktrees exist
+git worktree list
+```
+
+## 🛠️ Single-Session Commands
+
+### MCP Server Tools (Available via Claude Code)
+
+The orchestrator provides these tools through the MCP server:
+
+#### Worktree Management
+- `/worktree-create-feature "name"` - Create feature worktree with branch
+- `/worktree-create-test "name"` - Create test worktree with branch
+- `/worktree-create-docs "name"` - Create docs worktree with branch
+- `/worktree-create-bugfix "name"` - Create bugfix worktree with branch
+
+#### Background Agent System
+- `/worktree-spawn-agent worktree "task"` - Launch background Claude agent
+- `/worktree-agent-status [agent-id]` - Check agent status and progress
+- `/worktree-kill-agent agent-id` - Terminate a background agent
+
+#### Workflow Coordination
+- `/worktree-status` - Show all worktrees and active agents
+- `/worktree-integrate worktree [target-branch]` - Merge changes to main
+- `/help` - Show all available commands and examples
+
+### Legacy CLI Commands (ccmultihelper)
+
+For compatibility, the traditional multi-session CLI is still available:
 
 ```bash
 # Initialize setup
@@ -85,95 +186,162 @@ Once initialized, you'll have these slash commands available in Claude Code:
 - `/monitor-start` - Start worktree monitoring
 - `/monitor-stop` - Stop worktree monitoring
 
-## 🤖 How It Works
+## 🤖 Single-Session Architecture
 
-### Native Claude Code Integration
+### Traditional vs. New Approach
 
-This package leverages Claude Code's native capabilities:
+#### **Old Way (Multi-Session):**
+```bash
+# Required multiple terminal windows and manual coordination
+cd ../my-project-worktrees/feature && claude &
+cd ../my-project-worktrees/test && claude &
+cd ../my-project-worktrees/docs && claude &
+# Manual switching between sessions, complex coordination
+```
 
-#### **Hooks System**
-- **SessionStart Hook**: Injects worktree context when Claude Code starts
-- **PostToolUse Hook**: Coordinates workflows between worktrees automatically
-- **UserPromptSubmit Hook**: Enhances prompts with worktree context
+#### **New Way (Single-Session):**
+```bash
+# Single Claude Code session manages everything
+cd my-project
+claude
+# Use commands to orchestrate background work
+/worktree-create-feature "user-auth"
+/worktree-spawn-agent feature "Implement authentication"
+/worktree-status
+/worktree-integrate feature
+```
 
-#### **Custom Commands**
-- **Slash Commands**: Native Claude Code command system
-- **Dynamic Context**: Commands automatically gather current project status
-- **Tool Integration**: Commands have access to git, file system, and other tools
+### How It Works
 
-### Automated Workflow Coordination
+#### **MCP Server Orchestration**
+- **Background Agents**: Spawn Claude Code agents in tmux sessions
+- **Tool Integration**: MCP server provides worktree management tools
+- **Agent Lifecycle**: Monitor, coordinate, and manage background work
+- **Resource Management**: Efficient allocation of compute resources
 
-The system uses **signal files** to coordinate workflows:
+#### **Workflow Coordination**
+1. **Create Worktrees**: `/worktree-create-feature "feature-name"`
+2. **Spawn Agents**: `/worktree-spawn-agent feature "implement feature"`
+3. **Monitor Progress**: `/worktree-agent-status`
+4. **Signal Completion**: Agents create `.claude-complete` files
+5. **Auto-Triggers**: Signal files trigger next workflow steps
+6. **Integration**: `/worktree-integrate feature` merges to main
 
-1. **Feature Development** → Create `.claude-complete` signal
-2. **Auto-Detection** → Hooks detect signal and trigger test workflow
-3. **Testing** → Create `.tests-complete` signal
-4. **Documentation** → Auto-trigger documentation updates
-5. **Validation** → Bug fixes are automatically validated
+### Background Agent System
 
-### Example Workflow
+#### **TMux Session Management**
+- Each background agent runs in isolated tmux session
+- Agents can execute long-running tasks without blocking main session
+- Real-time monitoring of agent status and progress
+- Graceful agent termination and cleanup
+
+#### **Signal File Coordination**
+- `.claude-complete` - Feature development finished
+- `.tests-complete` - Testing phase completed
+- `.bugfix-complete` - Bug fix ready for validation
+- `.docs-complete` - Documentation updated
+
+#### **Automatic Workflow Chains**
+```
+Feature Complete → Tests Triggered → Docs Updated → Ready for Review
+     ↓                   ↓               ↓              ↓
+.claude-complete → .tests-complete → .docs-complete → Integration
+```
+
+### Complete Example Workflow
 
 ```bash
-# 1. Initialize
-bunx ccmultihelper init --auto-setup
+# 1. Setup (one time)
+./setup-single-session.sh my-project
 
-# 2. Start Claude Code
+# 2. Start single Claude Code session
 claude
 
-# 3. Work in feature worktree
-> /worktree-feature
-# Claude develops feature...
+# 3. Create feature worktree and start development
+/worktree-create-feature "user-authentication"
+/worktree-spawn-agent feature "Implement OAuth login system"
 
-# 4. Signal completion (Claude can do this automatically)
-touch .claude-complete
+# 4. Monitor progress
+/worktree-agent-status
+# Output: Agent agent-123456789: Running in feature worktree
 
-# 5. Auto-coordination begins:
-#    → Test workflow triggers automatically
-#    → Tests run in test worktree
-#    → Documentation workflow triggers
-#    → Documentation updates in docs worktree
+# 5. Check overall status
+/worktree-status
+# Output: Shows all worktrees, active agents, signal files
+
+# 6. When feature is complete, agent creates .claude-complete
+# This automatically triggers test workflow:
+# /worktree-spawn-agent test "Run authentication tests"
+
+# 7. Integrate changes when ready
+/worktree-integrate feature main
+
+# 8. Clean up completed agents if needed
+/worktree-kill-agent agent-123456789
 ```
 
 ## 📁 Project Structure
 
-After initialization, your project will have:
+After running the setup script, your project will have:
 
 ```
 .your-project/
 ├── .claude/
-│   ├── commands/
-│   │   ├── worktree-feature.md
-│   │   ├── worktree-test.md
-│   │   ├── worktree-docs.md
-│   │   ├── worktree-bugfix.md
-│   │   ├── sync-worktrees.md
-│   │   ├── status-worktrees.md
-│   │   ├── monitor-start.md
-│   │   └── monitor-stop.md
+│   ├── mcp-servers.json          # MCP server configuration
 │   ├── hooks/
-│   │   ├── session-start.js
-│   │   └── post-tool-use.js
-│   └── hooks.json
+│   │   └── session-start.js      # Single-session initialization hook
+│   ├── hooks.json                # Hooks configuration
+│   └── worktree-config.json      # Project configuration
+├── src/
+│   ├── mcp-server.ts             # MCP server implementation
+│   ├── single-session.ts         # Command interface
+│   └── cli.ts                    # Legacy CLI (compatibility)
+├── dist/
+│   ├── mcp-server.js             # Compiled MCP server
+│   ├── single-session.js         # Compiled command interface
+│   └── cli.js                    # Compiled legacy CLI
 ├── ../your-project-worktrees/
-│   ├── feature/    # Feature development
-│   ├── test/       # Testing & validation
-│   ├── docs/       # Documentation
-│   └── bugfix/     # Bug fixes
-└── ...
+│   ├── feature/                  # Feature development
+│   │   └── launch-claude.sh      # Quick launch script
+│   ├── test/                     # Testing & validation
+│   │   └── launch-claude.sh
+│   ├── docs/                     # Documentation
+│   │   └── launch-claude.sh
+│   └── bugfix/                   # Bug fixes
+│       └── launch-claude.sh
+├── setup-single-session.sh      # Single-session setup script
+└── package.json                  # Updated with MCP dependencies
 ```
 
 ## 🔧 Configuration
 
-### Worktree Configuration
+### MCP Server Configuration
+
+The MCP server is configured in `.claude/mcp-servers.json`:
+
+```json
+{
+  "mcpServers": {
+    "worktree-orchestrator": {
+      "command": "node",
+      "args": ["dist/mcp-server.js"],
+      "env": {}
+    }
+  }
+}
+```
+
+### Project Configuration
 
 The system creates `.claude/worktree-config.json`:
 
 ```json
 {
   "projectName": "your-project",
-  "worktrees": ["feature", "test", "docs", "bugfix"],
-  "autoSync": true,
-  "monitoring": false
+  "mode": "single-session",
+  "mcpServer": "worktree-orchestrator",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "version": "2.0.0"
 }
 ```
 
@@ -193,17 +361,6 @@ Claude Code hooks are configured in `.claude/hooks.json`:
           }
         ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node .claude/hooks/post-tool-use.js"
-          }
-        ]
-      }
     ]
   }
 }
@@ -211,79 +368,128 @@ Claude Code hooks are configured in `.claude/hooks.json`:
 
 ## 🚀 Advanced Usage
 
-### Custom Monitoring
+### Custom Agent Commands
 
-You can extend the system with custom monitoring modes:
+You can spawn agents with custom commands:
 
 ```bash
-# Start monitoring with custom type
-> /monitor-start -t webhook
+# Run tests in background
+/worktree-spawn-agent test "Run full test suite" "npm test"
 
-# Choose from auto-detect, file-monitor, or webhook modes
-# The system will process signals automatically based on your workflow
+# Build documentation
+/worktree-spawn-agent docs "Generate API docs" "npm run docs"
+
+# Custom development task
+/worktree-spawn-agent feature "Complex refactoring" "echo 'Starting refactor...' && touch .claude-complete"
 ```
 
-### Monitoring Modes
+### Agent Lifecycle Management
 
-Choose from three monitoring modes:
+```bash
+# Check all agents
+/worktree-agent-status
 
-- **Auto-Detection**: Monitors signal files every 5 seconds (recommended)
-- **File Monitor**: Watches for file system changes in real-time
-- **Webhook Server**: HTTP-based workflow triggering
+# Check specific agent
+/worktree-agent-status agent-1234567890
 
-### Integration with CI/CD
+# Kill problematic agent
+/worktree-kill-agent agent-1234567890
 
-The signal files can be integrated with CI/CD pipelines:
-
-```yaml
-# Example GitHub Actions
-- name: Trigger test workflow
-  run: |
-    touch .claude-complete
-    # Wait for automated workflow to complete
+# Create new agent for different task
+/worktree-spawn-agent bugfix "Fix authentication bug"
 ```
 
-## 📈 Benefits Over Previous Version
+### Signal File Workflows
 
-### **vs External Scripts**
-- ✅ **Native Integration**: Uses Claude Code's built-in hooks system
-- ✅ **Better Performance**: No external process monitoring needed
-- ✅ **Seamless Experience**: Works within Claude Code's native interface
-- ✅ **Context Awareness**: Commands have access to full project context
+The system automatically processes these signal files:
 
-### **vs Manual Worktree Management**
-- ✅ **Automated Coordination**: Signal files handle workflow triggering
-- ✅ **Smart Sync**: Intelligent worktree synchronization
-- ✅ **Status Tracking**: Real-time worktree status monitoring
-- ✅ **Error Handling**: Robust error handling and recovery
+- **`.claude-complete`** → Triggers test workflow if in feature worktree
+- **`.tests-complete`** → Triggers documentation workflow if in test worktree
+- **`.bugfix-complete`** → Triggers validation workflow if in bugfix worktree
+- **`.docs-complete`** → Marks documentation workflow as complete
+
+### Integration Strategies
+
+```bash
+# Direct integration to main
+/worktree-integrate feature main
+
+# Integration to development branch
+/worktree-integrate feature develop
+
+# Integration with conflict resolution
+/worktree-integrate bugfix main
+# If conflicts occur, the tool will provide guidance
+```
+
+## 📈 Benefits Over Multi-Session Approach
+
+### **Single-Session vs Multi-Session**
+- ✅ **Unified Control**: One session manages all parallel work
+- ✅ **Resource Efficiency**: Background agents use fewer resources than full Claude sessions
+- ✅ **Simplified Management**: No window switching or session coordination
+- ✅ **Centralized Monitoring**: View all work from one interface
+
+### **MCP Server vs Manual Coordination**
+- ✅ **Automated Workflows**: Signal files trigger background work automatically
+- ✅ **Tool Integration**: Native Claude Code tool access through MCP
+- ✅ **Background Processing**: Long-running tasks don't block main session
+- ✅ **Intelligent Coordination**: Automatic workflow chains and dependencies
+
+### **vs Traditional Git Worktrees**
+- ✅ **Claude Code Integration**: Purpose-built for Claude Code workflows
+- ✅ **Smart Branching**: Automatic branch creation and management
+- ✅ **Parallel Development**: Multiple workstreams without conflicts
+- ✅ **Easy Integration**: Simple merge commands with conflict detection
 
 ## 🧹 Troubleshooting
 
 ### Common Issues
 
-**Hooks not working:**
+**MCP Server not starting:**
 ```bash
-# Check Claude Code configuration
-cat ~/.claude/config.json
+# Check if dependencies are installed
+npm install
 
-# Verify hooks are properly installed
-ls -la .claude/hooks/
+# Verify build completed
+npm run build
+
+# Check MCP server configuration
+cat .claude/mcp-servers.json
 ```
 
-**Commands not available:**
+**Commands not working:**
 ```bash
-# Restart Claude Code to pick up new commands
-# Check command files exist
-ls -la .claude/commands/
+# Restart Claude Code to pick up MCP server
+# Check if hooks are properly configured
+cat .claude/hooks.json
+
+# Verify setup script completed successfully
+./setup-single-session.sh
 ```
 
-**Worktree sync issues:**
+**Background agents not spawning:**
+```bash
+# Check if tmux is installed
+tmux --version
+
+# Verify worktrees exist
+/worktree-status
+
+# Check agent status
+/worktree-agent-status
+```
+
+**Worktree integration issues:**
 ```bash
 # Check worktree status
 git worktree list
 
-# Use the status command
-> /status-worktrees
+# Verify branch status
+git status
+
+# Use detailed status command
+/worktree-status
 ```
 
 ### Debug Mode
@@ -291,24 +497,65 @@ git worktree list
 Enable debug logging:
 
 ```bash
-# Check workflow logs
-cat /tmp/claude-worktree-workflows.log
+# Check MCP server logs (when running in development)
+npm run dev:mcp
 
 # Check Claude Code debug output
 claude --debug
+
+# Monitor tmux sessions
+tmux list-sessions
+
+# Check agent sessions directly
+tmux attach -t claude-feature-agent-123456789
 ```
 
 ## 🎯 Roadmap
 
+### v2.1 - Enhanced Agent Management
+- [ ] Agent persistence across Claude Code restarts
+- [ ] Agent output streaming to main session
+- [ ] Custom agent templates and presets
+- [ ] Agent resource usage monitoring
+
+### v2.2 - Workflow Extensions
+- [ ] Visual workflow designer
+- [ ] Custom signal file processors
+- [ ] Integration with external CI/CD systems
+- [ ] Team collaboration features
+
+### v2.3 - Developer Experience
 - [ ] VS Code extension integration
 - [ ] Web dashboard for monitoring
-- [ ] Advanced workflow templates
-- [ ] Team collaboration features
-- [ ] GitHub Actions integration
+- [ ] Advanced debugging tools
+- [ ] Performance analytics
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! This project uses:
+- **TypeScript** for type safety
+- **MCP SDK** for tool integration
+- **Bun** for fast builds and testing
+- **TMux** for background session management
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd multi-worktree-setup
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run dev:mcp      # MCP server
+npm run dev:session  # Command interface
+npm run dev          # Legacy CLI
+
+# Build for production
+npm run build
+```
 
 ## 📄 License
 
@@ -317,9 +564,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgments
 
 - Built with [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-- Inspired by official Claude Code worktree patterns
-- Enhanced with native hooks and custom commands
+- Powered by [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
+- Inspired by Git worktree workflows and parallel development patterns
+- Enhanced with tmux session management and background agent orchestration
 
 ---
 
-**Built with ❤️ for the Claude Code community**
+**🚀 Built for the Claude Code community - From multi-session complexity to single-session simplicity**

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "worktree-orchestrator": {
+      "command": "node",
+      "args": ["dist/mcp-server.js"],
+      "env": {}
+    }
+  }
+}
