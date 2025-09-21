@@ -44,7 +44,8 @@ if [ ! -f "package.json" ]; then
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "fs-extra": "^11.3.2"
+    "fs-extra": "^11.3.2",
+    "zod": "^4.1.11"
   }
 }
 EOF
@@ -81,9 +82,10 @@ echo "🔨 Creating MCP server..."
 echo "Downloading latest MCP server from GitHub..."
 curl -s https://raw.githubusercontent.com/karlorz/ccmultihelper/main/dist/mcp-server.js > dist/mcp-server.js
 
-if [ ! -s dist/mcp-server.js ]; then
+# Check if download was successful by looking for valid JavaScript content
+if [ ! -s dist/mcp-server.js ] || grep -q "404.*Not Found" dist/mcp-server.js; then
     echo "⚠️  Failed to download MCP server, creating fallback version..."
-    # Fallback to embedded version
+    # Fallback to embedded version with modern MCP patterns
     cat > src/mcp-server.js << 'EOF'
 #!/usr/bin/env node
 /**
@@ -91,12 +93,9 @@ if [ ! -s dist/mcp-server.js ]; then
  * Single-session parallel worktree automation system
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { execSync } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
