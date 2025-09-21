@@ -1,6 +1,6 @@
 {
   "name": "ccmultihelper",
-  "version": "1.2.5",
+  "version": "1.3.0",
   "description": "Claude Code Multi-Worktree Helper - Single-session parallel worktree automation with MCP server",
   "type": "module",
   "main": "dist/index.js",
