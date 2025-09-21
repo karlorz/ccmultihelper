@@ -234,7 +234,7 @@ claude
   }
 }
 
-const server = new Server(
+const server = new McpServer(
   {
     name: 'worktree-orchestrator',
     version: VERSION,
