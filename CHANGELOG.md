@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/karlorz/ccmultihelper/compare/v1.5.0...v1.5.1) (2025-09-21)
+
+
+### Bug Fixes
+
+* repair setup script fallback logic and update embedded MCP patterns ([dd34189](https://github.com/karlorz/ccmultihelper/commit/dd341893f013504ee7e06f442d6405db0dd40977))
+
 # [1.5.0](https://github.com/karlorz/ccmultihelper/compare/v1.4.0...v1.5.0) (2025-09-21)
 
 
