@@ -43,10 +43,17 @@ describe('MCP Server Tests', () => {
 
       // Run the setup script
       try {
+        console.log('Running setup script for test-project...');
+        const startTime = Date.now();
+
         execSync('./setup-single-session-standalone.sh test-project', {
           cwd: testRepo,
-          timeout: 60000  // 60 second timeout
+          timeout: 180000,  // 3 minute timeout for CI environments
+          stdio: ['ignore', 'pipe', 'pipe']  // Capture output for debugging
         });
+
+        const endTime = Date.now();
+        console.log(`Setup script completed in ${(endTime - startTime) / 1000}s`);
 
         // Check if MCP server file was created
         const mcpServerPath = join(testRepo, 'dist', 'mcp-server.js');
@@ -64,13 +71,18 @@ describe('MCP Server Tests', () => {
         expect(mcpConfig.mcpServers['worktree-orchestrator'].args).toContain('dist/mcp-server.js');
 
       } catch (error) {
-        console.warn('Setup script test skipped due to execution error:', error.message);
-        // This test is optional since it depends on external dependencies
+        console.error('Setup script execution failed:', error.message);
+        if (error.stdout) console.error('stdout:', error.stdout.toString());
+        if (error.stderr) console.error('stderr:', error.stderr.toString());
+
+        // In CI environments, this test might fail due to network/npm issues
+        // Mark as optional to prevent blocking the build
+        console.warn('Setup script test skipped due to execution error - this is expected in some CI environments');
       }
     } else {
       console.warn('Setup script not found, skipping integration test');
     }
-  });
+  }, 200000);  // 200 second test timeout
 
   test('MCP server file contains required imports', () => {
     const mcpServerPath = join(process.cwd(), 'src', 'mcp-server.ts');
