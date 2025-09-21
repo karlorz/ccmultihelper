@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/karlorz/ccmultihelper/compare/v1.3.0...v1.4.0) (2025-09-21)
+
+
+### Features
+
+* Dynamic version reading from package.json ([209940c](https://github.com/karlorz/ccmultihelper/commit/209940cfd139d7747c36617c3ad3d8fa3465625e))
+
 # [1.3.0](https://github.com/karlorz/ccmultihelper/compare/v1.2.5...v1.3.0) (2025-09-21)
 
 
