@@ -208,17 +208,17 @@ class SingleSessionInterface {
 
 // Command-line interface
 if (require.main === module) {
-  const interface = new SingleSessionInterface();
+  const sessionInterface = new SingleSessionInterface();
 
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
     // Start interactive mode
-    interface.startInteractiveMode();
+    sessionInterface.startInteractiveMode();
   } else {
     // Process single command
     const command = args.join(' ');
-    interface.processCommand(command)
+    sessionInterface.processCommand(command)
       .then(result => {
         console.log(result);
         process.exit(0);

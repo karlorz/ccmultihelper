@@ -91,12 +91,17 @@ The setup script automatically:
 # Start Claude Code in your project
 claude
 
-# In your Claude Code session, try these commands:
-/worktree-create "feature" "user-authentication"    # Create feature worktree
-/worktree-spawn-agent "feature" "Build login form"  # Start background work
-/worktree-status                                     # Check everything
-/help                                               # See all commands
+# Verify MCP server is registered
+claude mcp get worktree-orchestrator
+# (should show server details)
+
+# In your Claude Code session, use natural language:
+"Create a feature worktree called user-authentication"
+"Spawn an agent in the feature worktree to build login form"
+"Show me the status of all worktrees"
 ```
+
+> **Note**: Project-scoped MCP servers don't appear in `claude mcp list` but can be verified with `claude mcp get <name>`.
 
 ### Quick Troubleshooting
 
@@ -133,19 +138,26 @@ git worktree list
 
 ## 🛠️ Single-Session Commands
 
-### MCP Server Tools (Available via Claude Code)
+### MCP Server Tools (Available via Natural Language)
 
-The orchestrator provides these tools through the MCP server:
+The orchestrator provides these tools through the MCP server. Use natural language to access them:
 
 #### Worktree Management
-- `/worktree-create "feature" "name"` - Create feature worktree with branch
-- `/worktree-create "test" "name"` - Create test worktree with branch
-- `/worktree-create "docs" "name"` - Create docs worktree with branch
-- `/worktree-create "bugfix" "name"` - Create bugfix worktree with branch
+- `mcp__worktree-orchestrator__worktree-create` - Create worktrees (feature/test/docs/bugfix)
+  - *Usage*: "Create a feature worktree called user-auth"
+  - *Usage*: "Set up a test worktree for integration testing"
 
 #### Background Agent System
-- `/worktree-spawn-agent "worktree" "task"` - Launch background Claude agent
-- `/worktree-status` - Show all worktrees and active agents
+- `mcp__worktree-orchestrator__worktree-spawn-agent` - Launch background Claude agents
+  - *Usage*: "Spawn an agent in the feature worktree to implement login"
+  - *Usage*: "Start a background agent to run tests"
+
+#### Status and Monitoring
+- `mcp__worktree-orchestrator__worktree-status` - Show all worktrees and active agents
+  - *Usage*: "Show me the status of all worktrees"
+  - *Usage*: "What agents are currently running?"
+
+> **Note**: You don't need to use the technical tool names directly. Claude Code will automatically map your natural language requests to the appropriate MCP tools.
 
 ### Legacy CLI Commands (ccmultihelper)
 
@@ -202,10 +214,10 @@ cd ../my-project-worktrees/docs && claude &
 # Single Claude Code session manages everything
 cd my-project
 claude
-# Use commands to orchestrate background work
-/worktree-create "feature" "user-auth"
-/worktree-spawn-agent "feature" "Implement authentication"
-/worktree-status
+# Use natural language to orchestrate background work
+"Create a feature worktree called user-auth"
+"Spawn an agent in the feature worktree to implement authentication"
+"Show me the status of all worktrees"
 ```
 
 ### How It Works
@@ -217,9 +229,9 @@ claude
 - **Resource Management**: Efficient allocation of compute resources
 
 #### **Workflow Coordination**
-1. **Create Worktrees**: `/worktree-create "feature" "feature-name"`
-2. **Spawn Agents**: `/worktree-spawn-agent "feature" "implement feature"`
-3. **Monitor Progress**: `/worktree-status`
+1. **Create Worktrees**: "Create a feature worktree called feature-name"
+2. **Spawn Agents**: "Spawn an agent in the feature worktree to implement feature"
+3. **Monitor Progress**: "Show me the status of all worktrees"
 4. **Signal Completion**: Agents create `.claude-complete` files
 5. **Auto-Triggers**: Signal files trigger next workflow steps
 
@@ -253,19 +265,23 @@ Feature Complete → Tests Triggered → Docs Updated → Ready for Review
 # 2. Start single Claude Code session
 claude
 
-# 3. Create feature worktree and start development
-/worktree-create "feature" "user-authentication"
-/worktree-spawn-agent "feature" "Implement OAuth login system"
+# 3. Verify MCP server is registered
+claude mcp get worktree-orchestrator
+# Should show server configuration details
 
-# 4. Monitor progress
-/worktree-status
+# 4. Create feature worktree and start development
+"Create a feature worktree called user-authentication"
+"Spawn an agent in the feature worktree to implement OAuth login system"
+
+# 5. Monitor progress
+"Show me the status of all worktrees"
 # Output: Shows all worktrees, active agents, signal files
 
-# 5. When feature is complete, agent creates .claude-complete
+# 6. When feature is complete, agent creates .claude-complete
 # This automatically triggers test workflow in the background
 
-# 6. Check final status
-/worktree-status
+# 7. Check final status
+"What's the current status of all my worktrees and agents?"
 ```
 
 ## 📁 Project Structure
@@ -275,19 +291,15 @@ After running the setup script, your project will have:
 ```
 .your-project/
 ├── .claude/
-│   ├── mcp-servers.json          # MCP server configuration
 │   ├── hooks/
 │   │   └── session-start.js      # Single-session initialization hook
 │   ├── hooks.json                # Hooks configuration
 │   └── worktree-config.json      # Project configuration
+├── .mcp.json                     # MCP server configuration (project root)
 ├── src/
-│   ├── mcp-server.ts             # MCP server implementation
-│   ├── single-session.ts         # Command interface
-│   └── cli.ts                    # Legacy CLI (compatibility)
+│   └── mcp-server.js             # MCP server implementation
 ├── dist/
-│   ├── mcp-server.js             # Compiled MCP server
-│   ├── single-session.js         # Compiled command interface
-│   └── cli.js                    # Compiled legacy CLI
+│   └── mcp-server.js             # Compiled MCP server
 ├── ../your-project-worktrees/
 │   ├── feature/                  # Feature development
 │   │   └── launch-claude.sh      # Quick launch script
@@ -297,26 +309,34 @@ After running the setup script, your project will have:
 │   │   └── launch-claude.sh
 │   └── bugfix/                   # Bug fixes
 │       └── launch-claude.sh
-├── setup-single-session.sh      # Single-session setup script
-└── package.json                  # Updated with MCP dependencies
+├── setup-single-session-standalone.sh  # Single-session setup script
+├── package.json                  # Node.js dependencies
+└── node_modules/                 # Installed dependencies
 ```
 
 ## 🔧 Configuration
 
 ### MCP Server Configuration
 
-The MCP server is configured in `.claude/mcp-servers.json`:
+The MCP server is configured in `.mcp.json` at the project root:
 
 ```json
 {
   "mcpServers": {
     "worktree-orchestrator": {
+      "type": "stdio",
       "command": "node",
       "args": ["dist/mcp-server.js"],
       "env": {}
     }
   }
 }
+```
+
+You can verify the server is registered with:
+```bash
+claude mcp get worktree-orchestrator
+# Should show server configuration details
 ```
 
 ### Project Configuration

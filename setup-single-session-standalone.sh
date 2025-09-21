@@ -324,12 +324,29 @@ EOF
 echo "📦 Preparing distribution files..."
 cp src/mcp-server.js dist/mcp-server.js
 
-# Create MCP server configuration
-echo "🔧 Configuring MCP server..."
-cat > .claude/mcp-servers.json << 'EOF'
+# Register the MCP server with Claude Code CLI
+echo "📋 Registering MCP server with Claude Code..."
+if command -v claude >/dev/null 2>&1; then
+    # Remove existing .mcp.json to avoid conflicts
+    rm -f .mcp.json
+
+    # Add the server using Claude CLI (this creates the correct format)
+    claude mcp add worktree-orchestrator --scope project node dist/mcp-server.js
+    echo "✅ MCP server registered with Claude Code"
+
+    # Verify the configuration was created
+    if [ -f ".mcp.json" ]; then
+        echo "✅ .mcp.json configuration file created"
+    else
+        echo "⚠️ .mcp.json not created - manual setup may be required"
+    fi
+else
+    echo "⚠️ Claude CLI not found. Creating .mcp.json manually..."
+    cat > .mcp.json << 'EOF'
 {
   "mcpServers": {
     "worktree-orchestrator": {
+      "type": "stdio",
       "command": "node",
       "args": ["dist/mcp-server.js"],
       "env": {}
@@ -337,6 +354,8 @@ cat > .claude/mcp-servers.json << 'EOF'
   }
 }
 EOF
+    echo "📋 Manual .mcp.json created - you may need to register with: claude mcp add worktree-orchestrator --scope project node dist/mcp-server.js"
+fi
 
 # Create session start hook
 cat > .claude/hooks/session-start.js << 'EOF'
@@ -346,13 +365,16 @@ console.log(JSON.stringify({
     hookEventName: "SessionStart",
     additionalContext: `🔄 Single-Session Worktree Orchestrator Active
 
-Available Commands:
-- /worktree-create-feature "name" - Create feature worktree
-- /worktree-create-test "name" - Create test worktree
-- /worktree-create-docs "name" - Create docs worktree
-- /worktree-create-bugfix "name" - Create bugfix worktree
-- /worktree-spawn-agent worktree "task" - Spawn background agent
-- /worktree-status - Show worktree and agent status
+Available MCP Tools:
+- mcp__worktree-orchestrator__worktree-create - Create worktrees (feature/test/docs/bugfix)
+- mcp__worktree-orchestrator__worktree-spawn-agent - Spawn background agents
+- mcp__worktree-orchestrator__worktree-status - Show worktree and agent status
+
+Usage Examples:
+Use the Claude Code tool calling interface to access these MCP tools:
+• "Create a feature worktree called user-auth"
+• "Spawn an agent in the feature worktree to implement login"
+• "Show me the status of all worktrees"
 
 Background Agent System:
 - Agents run in tmux sessions for parallel execution
@@ -362,7 +384,7 @@ Background Agent System:
 Single-Session Architecture:
 - No need for multiple Claude Code instances
 - Background agents handle parallel work
-- Unified command interface for all operations`
+- Unified MCP tool interface for all operations`
   }
 }));
 EOF
@@ -402,15 +424,23 @@ echo "✅ Single-session setup complete!"
 echo ""
 echo "🎯 Next Steps:"
 echo "1. Start Claude Code: claude"
-echo "2. Use commands like: /worktree-create \"feature\" \"my-feature\""
-echo "3. Spawn background agents: /worktree-spawn-agent \"feature\" \"implement feature\""
-echo "4. Monitor progress: /worktree-status"
+echo "2. Use natural language to access MCP tools:"
+echo "   • 'Create a feature worktree called my-feature'"
+echo "   • 'Spawn an agent in the feature worktree to implement feature'"
+echo "   • 'Show me the status of all worktrees'"
 echo ""
 echo "📖 Key Features:"
 echo "• Single Claude Code session manages everything"
 echo "• Background agents handle parallel work in tmux"
 echo "• MCP server provides native tool integration"
-echo "• Automatic workflow coordination via signal files"
+echo "• Natural language interface - no slash commands needed"
+echo ""
+echo "🔧 Verify MCP Setup:"
+echo "   claude mcp get worktree-orchestrator"
+echo "   (should show server details)"
+echo ""
+echo "📋 Note: Project-scoped servers won't appear in 'claude mcp list'"
+echo "   but can be accessed via 'claude mcp get <name>'"
 echo ""
 echo "🚨 Important: Make sure you have tmux installed for background agents:"
 echo "   macOS: brew install tmux"
