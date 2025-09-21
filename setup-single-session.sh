@@ -6,9 +6,12 @@ set -e
 
 PROJECT_NAME="${1:-$(basename $(pwd))}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+USER_PROJECT_DIR="$(pwd)"
 
 echo "🚀 Setting up Single-Session Worktree Orchestration..."
 echo "Project: $PROJECT_NAME"
+echo "Script location: $SCRIPT_DIR"
+echo "User project: $USER_PROJECT_DIR"
 echo ""
 
 # Check if we're in a git repository
@@ -17,17 +20,98 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
-# Build the MCP server and components
-echo "📦 Building MCP server components..."
-npm run build
+# Check if we need to download and setup the MCP components
+if [ ! -f "$USER_PROJECT_DIR/package.json" ] || ! grep -q "ccmultihelper" "$USER_PROJECT_DIR/package.json" 2>/dev/null; then
+    echo "📦 Setting up ccmultihelper components..."
+
+    # Download ccmultihelper via npm/bun
+    if command -v bun >/dev/null 2>&1; then
+        echo "📥 Installing ccmultihelper package with bun..."
+        bun add ccmultihelper@latest
+    else
+        echo "📥 Installing ccmultihelper package with npm..."
+        npm install ccmultihelper@latest
+    fi
+
+    echo "✅ Installed ccmultihelper components"
+else
+    echo "📦 Found existing ccmultihelper components"
+fi
+
+# Ensure we have the required dependencies
+echo "📦 Installing dependencies..."
+if [ ! -d "node_modules" ] || [ ! -f "node_modules/@modelcontextprotocol/sdk/package.json" ]; then
+    # Use bun by default, fallback to npm
+    if command -v bun >/dev/null 2>&1; then
+        echo "Using bun for dependency installation..."
+        bun install
+    else
+        echo "Using npm for dependency installation..."
+        npm install
+    fi
+fi
+
+# Check if we have source files or need to use npm package files
+if [ -f "src/mcp-server.ts" ]; then
+    echo "🔨 Building MCP server components from source..."
+
+    # Use bun by default, fallback to npm/npx
+    if command -v bun >/dev/null 2>&1; then
+        echo "Using bun for building..."
+        bun run build 2>/dev/null || {
+            echo "⚠️ Build script not found, building manually with bun..."
+            mkdir -p dist
+            bun build src/mcp-server.ts --outfile=dist/mcp-server.js --target=node
+            bun build src/single-session.ts --outfile=dist/single-session.js --target=node
+            bun build src/cli.ts --outfile=dist/cli.js --target=node
+        }
+    else
+        echo "Building with npm/npx (bun not available)..."
+        npm run build 2>/dev/null || {
+            echo "⚠️ Build script not found, building manually..."
+            mkdir -p dist
+
+            # Use npx tsc if available, or create simplified JS versions
+            if command -v npx >/dev/null 2>&1 && npx tsc --version >/dev/null 2>&1; then
+                npx tsc src/mcp-server.ts --outDir dist --target es2020 --module commonjs
+                npx tsc src/single-session.ts --outDir dist --target es2020 --module commonjs
+                npx tsc src/cli.ts --outDir dist --target es2020 --module commonjs
+            else
+                echo "⚠️ TypeScript not available, copying source files..."
+                cp src/mcp-server.ts dist/mcp-server.js
+                cp src/single-session.ts dist/single-session.js
+                cp src/cli.ts dist/cli.js
+            fi
+        }
+    fi
+    echo "✅ Built MCP server components"
+elif [ -f "node_modules/ccmultihelper/dist/mcp-server.js" ]; then
+    echo "📦 Using pre-built components from ccmultihelper package..."
+    mkdir -p dist
+    cp node_modules/ccmultihelper/dist/* dist/ 2>/dev/null || true
+    echo "✅ Copied pre-built MCP server components"
+else
+    echo "❌ No MCP server components found. Please ensure ccmultihelper is installed correctly."
+    exit 1
+fi
 
 # Create .claude directory structure
 echo "📁 Creating Claude Code configuration..."
 mkdir -p .claude/{commands,hooks}
 
-# Copy MCP server configuration
+# Create MCP server configuration
 echo "🔧 Configuring MCP server..."
-cp .claude/mcp-servers.json .claude/
+cat > .claude/mcp-servers.json << 'EOF'
+{
+  "mcpServers": {
+    "worktree-orchestrator": {
+      "command": "node",
+      "args": ["dist/mcp-server.js"],
+      "env": {}
+    }
+  }
+}
+EOF
 
 # Create session start hook for single-session mode
 cat > .claude/hooks/session-start.js << 'EOF'
@@ -108,3 +192,7 @@ echo "• Natural language commands for all operations"
 echo "• Automatic workflow coordination via signal files"
 echo ""
 echo "🔍 For help anytime, use: /help"
+echo ""
+echo "🚨 Important: Make sure you have tmux installed for background agents:"
+echo "   macOS: brew install tmux"
+echo "   Ubuntu: sudo apt install tmux"

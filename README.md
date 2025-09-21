@@ -20,10 +20,12 @@ This project has been completely redesigned with a **single-session architecture
 ### Prerequisites
 
 Before starting, ensure you have:
-- **Node.js 18+** and **npm** installed
+- **Node.js 18+** and **bun** (recommended) or **npm** installed
 - **Git repository** initialized in your project
 - **tmux** installed (`brew install tmux` on macOS, `apt install tmux` on Ubuntu)
 - **Claude Code** installed globally
+
+> **Note**: The setup script uses **bun** by default for faster installation and builds, but falls back to npm if bun is not available.
 
 ### Option 1: Quick Setup (Existing Project)
 
@@ -31,10 +33,10 @@ Before starting, ensure you have:
 # 1. Navigate to your Git repository
 cd /path/to/your/existing/project
 
-# 2. Download and run the setup script
-curl -O https://raw.githubusercontent.com/karlorz/ccmultihelper/main/setup-single-session.sh
-chmod +x setup-single-session.sh
-./setup-single-session.sh
+# 2. Download and run the standalone setup script
+curl -O https://raw.githubusercontent.com/karlorz/ccmultihelper/main/setup-single-session-standalone.sh
+chmod +x setup-single-session-standalone.sh
+./setup-single-session-standalone.sh
 
 # 3. Start Claude Code with orchestrator
 claude
@@ -47,14 +49,14 @@ claude
 git clone https://github.com/karlorz/ccmultihelper.git
 cd ccmultihelper
 
-# 2. Run the setup script
-./setup-single-session.sh demo-project
+# 2. Run the standalone setup script
+./setup-single-session-standalone.sh demo-project
 
 # 3. Start Claude Code
 claude
 
 # 4. Try the demo commands
-# /worktree-create-feature "hello-world"
+# /worktree-create "feature" "hello-world"
 # /worktree-status
 ```
 
@@ -90,11 +92,10 @@ The setup script automatically:
 claude
 
 # In your Claude Code session, try these commands:
-/worktree-create-feature "user-authentication"    # Create feature worktree
-/worktree-spawn-agent feature "Build login form"  # Start background work
-/worktree-status                                   # Check everything
-/worktree-agent-status                            # Monitor agents
-/help                                             # See all commands
+/worktree-create "feature" "user-authentication"    # Create feature worktree
+/worktree-spawn-agent "feature" "Build login form"  # Start background work
+/worktree-status                                     # Check everything
+/help                                               # See all commands
 ```
 
 ### Quick Troubleshooting
@@ -104,11 +105,14 @@ claude
 # Check Node.js version
 node --version  # Should be 18+
 
+# Install bun (recommended)
+curl -fsSL https://bun.sh/install | bash
+
 # Install dependencies manually
-npm install
+bun install  # or npm install
 
 # Re-run setup
-./setup-single-session.sh
+./setup-single-session-standalone.sh
 ```
 
 **Commands not working in Claude:**
@@ -134,20 +138,14 @@ git worktree list
 The orchestrator provides these tools through the MCP server:
 
 #### Worktree Management
-- `/worktree-create-feature "name"` - Create feature worktree with branch
-- `/worktree-create-test "name"` - Create test worktree with branch
-- `/worktree-create-docs "name"` - Create docs worktree with branch
-- `/worktree-create-bugfix "name"` - Create bugfix worktree with branch
+- `/worktree-create "feature" "name"` - Create feature worktree with branch
+- `/worktree-create "test" "name"` - Create test worktree with branch
+- `/worktree-create "docs" "name"` - Create docs worktree with branch
+- `/worktree-create "bugfix" "name"` - Create bugfix worktree with branch
 
 #### Background Agent System
-- `/worktree-spawn-agent worktree "task"` - Launch background Claude agent
-- `/worktree-agent-status [agent-id]` - Check agent status and progress
-- `/worktree-kill-agent agent-id` - Terminate a background agent
-
-#### Workflow Coordination
+- `/worktree-spawn-agent "worktree" "task"` - Launch background Claude agent
 - `/worktree-status` - Show all worktrees and active agents
-- `/worktree-integrate worktree [target-branch]` - Merge changes to main
-- `/help` - Show all available commands and examples
 
 ### Legacy CLI Commands (ccmultihelper)
 
@@ -205,10 +203,9 @@ cd ../my-project-worktrees/docs && claude &
 cd my-project
 claude
 # Use commands to orchestrate background work
-/worktree-create-feature "user-auth"
-/worktree-spawn-agent feature "Implement authentication"
+/worktree-create "feature" "user-auth"
+/worktree-spawn-agent "feature" "Implement authentication"
 /worktree-status
-/worktree-integrate feature
 ```
 
 ### How It Works
@@ -220,12 +217,11 @@ claude
 - **Resource Management**: Efficient allocation of compute resources
 
 #### **Workflow Coordination**
-1. **Create Worktrees**: `/worktree-create-feature "feature-name"`
-2. **Spawn Agents**: `/worktree-spawn-agent feature "implement feature"`
-3. **Monitor Progress**: `/worktree-agent-status`
+1. **Create Worktrees**: `/worktree-create "feature" "feature-name"`
+2. **Spawn Agents**: `/worktree-spawn-agent "feature" "implement feature"`
+3. **Monitor Progress**: `/worktree-status`
 4. **Signal Completion**: Agents create `.claude-complete` files
 5. **Auto-Triggers**: Signal files trigger next workflow steps
-6. **Integration**: `/worktree-integrate feature` merges to main
 
 ### Background Agent System
 
@@ -252,32 +248,24 @@ Feature Complete → Tests Triggered → Docs Updated → Ready for Review
 
 ```bash
 # 1. Setup (one time)
-./setup-single-session.sh my-project
+./setup-single-session-standalone.sh my-project
 
 # 2. Start single Claude Code session
 claude
 
 # 3. Create feature worktree and start development
-/worktree-create-feature "user-authentication"
-/worktree-spawn-agent feature "Implement OAuth login system"
+/worktree-create "feature" "user-authentication"
+/worktree-spawn-agent "feature" "Implement OAuth login system"
 
 # 4. Monitor progress
-/worktree-agent-status
-# Output: Agent agent-123456789: Running in feature worktree
-
-# 5. Check overall status
 /worktree-status
 # Output: Shows all worktrees, active agents, signal files
 
-# 6. When feature is complete, agent creates .claude-complete
-# This automatically triggers test workflow:
-# /worktree-spawn-agent test "Run authentication tests"
+# 5. When feature is complete, agent creates .claude-complete
+# This automatically triggers test workflow in the background
 
-# 7. Integrate changes when ready
-/worktree-integrate feature main
-
-# 8. Clean up completed agents if needed
-/worktree-kill-agent agent-123456789
+# 6. Check final status
+/worktree-status
 ```
 
 ## 📁 Project Structure
