@@ -33,10 +33,27 @@ if [ ! -f "package.json" ]; then
     "dev": "node src/mcp-server.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "fs-extra": "^11.3.2"
   }
 }
 EOF
+else
+    echo "📦 Updating existing package.json with required dependencies..."
+    # Check if package.json has type: module, if not add it
+    if ! grep -q '"type".*"module"' package.json; then
+        # Add type: module after name field
+        sed -i.bak 's/"name":\s*"[^"]*",/"name": "'$(basename $(pwd))'-worktree-orchestrator",\n  "type": "module",/' package.json
+    fi
+
+    # Install required dependencies if not already present
+    if command -v bun >/dev/null 2>&1; then
+        echo "Adding required dependencies with bun..."
+        bun add @modelcontextprotocol/sdk fs-extra
+    else
+        echo "Adding required dependencies with npm..."
+        npm install @modelcontextprotocol/sdk fs-extra
+    fi
 fi
 
 # Install dependencies
@@ -423,7 +440,8 @@ EOF
 echo "✅ Single-session setup complete!"
 echo ""
 echo "🎯 Next Steps:"
-echo "1. Start Claude Code: claude"
+echo "1. Restart Claude Code: claude"
+echo "   (Important: Restart to pick up the new MCP server)"
 echo "2. Use natural language to access MCP tools:"
 echo "   • 'Create a feature worktree called my-feature'"
 echo "   • 'Spawn an agent in the feature worktree to implement feature'"
@@ -437,10 +455,16 @@ echo "• Natural language interface - no slash commands needed"
 echo ""
 echo "🔧 Verify MCP Setup:"
 echo "   claude mcp get worktree-orchestrator"
-echo "   (should show server details)"
+echo "   (should show Status: ✓ Connected)"
 echo ""
 echo "📋 Note: Project-scoped servers won't appear in 'claude mcp list'"
 echo "   but can be accessed via 'claude mcp get <name>'"
+echo ""
+echo "⚠️  If MCP server shows 'Failed to connect':"
+echo "   1. Make sure all dependencies are installed: bun install"
+echo "   2. Check Node.js module type: package.json should have '\"type\": \"module\"'"
+echo "   3. Re-register the server: claude mcp remove worktree-orchestrator -s project"
+echo "      then: claude mcp add worktree-orchestrator --scope project node dist/mcp-server.js"
 echo ""
 echo "🚨 Important: Make sure you have tmux installed for background agents:"
 echo "   macOS: brew install tmux"
