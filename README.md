@@ -242,6 +242,39 @@ bunx ccmultihelper start-monitor [-t auto-detect|file-monitor|webhook]
 bunx ccmultihelper cleanup
 ```
 
+### MCP Server Registration
+
+For direct MCP server usage (like `@modelcontextprotocol/server-filesystem`), you can register the server directly:
+
+#### Option 1: Direct npx/bunx (Recommended)
+```bash
+# Register MCP server using npx (downloads latest version)
+claude mcp add worktree-orchestrator --scope project npx -y ccmultihelper
+
+# Or using bunx
+claude mcp add worktree-orchestrator --scope project bunx -y ccmultihelper
+
+# Verify registration
+claude mcp get worktree-orchestrator
+```
+
+#### Option 2: Node.js Direct
+```bash
+# Register MCP server using direct node execution
+claude mcp add worktree-orchestrator --scope project node dist/mcp-server.js
+
+# For global installation
+claude mcp add worktree-orchestrator --scope project node "$(npm root -g)/ccmultihelper/dist/mcp-server.js"
+```
+
+#### Option 3: Custom Environment
+```bash
+# Register with custom environment variable for explicit MCP mode
+claude mcp add worktree-orchestrator --scope project sh -c "MCP_SERVER_MODE=true node $(npm root -g)/ccmultihelper/dist/cli.js"
+```
+
+> **Note**: The first option (`npx -y ccmultihelper`) is recommended as it automatically downloads the latest version and requires no local installation.
+
 ### Claude Code Slash Commands (Legacy Multi-Session)
 
 **Note**: These slash commands are for the legacy multi-session approach. For the new single-session architecture, use natural language with MCP tools instead.

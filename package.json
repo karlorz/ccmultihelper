@@ -3,7 +3,7 @@
   "version": "1.6.0",
   "description": "Claude Code Multi-Worktree Helper - Single-session parallel worktree automation with MCP server",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/cli.js",
   "bin": {
     "ccmultihelper": "dist/cli.js",
     "ccmh": "dist/cli.js",

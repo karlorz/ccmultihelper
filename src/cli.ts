@@ -6,7 +6,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { createHash } from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1093,4 +1093,25 @@ if (shouldCheckUpdate) {
   });
 }
 
-program.parse();
+// Check if running as MCP server (stdio mode or explicit environment variable)
+if ((args.length === 0 && !process.stdin.isTTY) || process.env.MCP_SERVER_MODE === 'true') {
+  // Running as MCP server - start the MCP server instead of CLI
+  console.error('Starting MCP server...'); // Log to stderr so it doesn't interfere with MCP protocol
+  const mcpServerPath = path.join(__dirname, 'mcp-server.js');
+
+  if (fs.existsSync(mcpServerPath)) {
+    const mcpServer = spawn('node', [mcpServerPath], {
+      stdio: 'inherit'
+    });
+
+    mcpServer.on('exit', (code) => {
+      process.exit(code || 0);
+    });
+  } else {
+    console.error('MCP server not found. Please build the project first with: bun run build');
+    process.exit(1);
+  }
+} else {
+  // Normal CLI mode
+  program.parse();
+}
