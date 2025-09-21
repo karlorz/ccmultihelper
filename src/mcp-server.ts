@@ -4,13 +4,9 @@
  * Single-session parallel worktree automation system
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  Tool,
-} from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod';
 import { execSync, spawn } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
@@ -449,270 +445,176 @@ claude
   }
 }
 
-const server = new Server(
-  {
-    name: 'worktree-orchestrator',
-    version: VERSION,
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
+// Create MCP server with modern API
+const server = new McpServer({
+  name: 'worktree-orchestrator',
+  version: VERSION,
+});
 
 const orchestrator = new WorktreeOrchestrator();
 
-const tools: Tool[] = [
+// Register tools using modern MCP API patterns
+
+// Tool 1: Create worktree
+server.registerTool(
+  'worktree-create',
   {
-    name: 'worktree-create',
+    title: 'Create Worktree',
     description: 'Create a new worktree for parallel development',
     inputSchema: {
-      type: 'object',
-      properties: {
-        type: {
-          type: 'string',
-          enum: ['feature', 'test', 'docs', 'bugfix'],
-          description: 'Type of worktree to create'
-        },
-        name: {
-          type: 'string',
-          description: 'Name/identifier for the worktree branch'
-        }
-      },
-      required: ['type', 'name']
+      type: z.enum(['feature', 'test', 'docs', 'bugfix']).describe('Type of worktree to create'),
+      name: z.string().describe('Name/identifier for the worktree branch')
     }
   },
-  {
-    name: 'worktree-spawn-agent',
-    description: 'Spawn a background Claude Code agent in a worktree',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        worktree: {
-          type: 'string',
-          enum: ['feature', 'test', 'docs', 'bugfix'],
-          description: 'Target worktree for the agent'
-        },
-        task: {
-          type: 'string',
-          description: 'Task description for the agent'
-        },
-        command: {
-          type: 'string',
-          description: 'Command to execute in the background agent',
-          default: 'claude'
-        }
-      },
-      required: ['worktree', 'task']
-    }
-  },
-  {
-    name: 'worktree-status',
-    description: 'Get status of all worktrees and background agents',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
-  },
-  {
-    name: 'worktree-agent-status',
-    description: 'Get status of background agents',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: {
-          type: 'string',
-          description: 'Specific agent ID to check (optional)'
-        }
-      }
-    }
-  },
-  {
-    name: 'worktree-kill-agent',
-    description: 'Kill a background agent',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: {
-          type: 'string',
-          description: 'Agent ID to terminate'
-        }
-      },
-      required: ['agentId']
-    }
-  },
-  {
-    name: 'worktree-agent-logs',
-    description: 'Get real-time output logs from a background agent',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        agentId: {
-          type: 'string',
-          description: 'Agent ID to get logs from'
-        },
-        lines: {
-          type: 'number',
-          description: 'Number of recent log lines to retrieve',
-          default: 20
-        }
-      },
-      required: ['agentId']
-    }
-  },
-  {
-    name: 'worktree-agent-progress',
-    description: 'Monitor file changes and progress in a worktree',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        worktree: {
-          type: 'string',
-          enum: ['feature', 'test', 'docs', 'bugfix'],
-          description: 'Worktree to monitor for changes'
-        },
-        since: {
-          type: 'string',
-          description: 'Monitor changes since this timestamp (ISO string)',
-          default: 'last-check'
-        }
-      },
-      required: ['worktree']
-    }
-  },
-  {
-    name: 'worktree-integrate',
-    description: 'Integrate changes from a worktree into main branch',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        sourceWorktree: {
-          type: 'string',
-          enum: ['feature', 'test', 'docs', 'bugfix'],
-          description: 'Source worktree to integrate from'
-        },
-        targetBranch: {
-          type: 'string',
-          description: 'Target branch to merge into',
-          default: 'main'
-        }
-      },
-      required: ['sourceWorktree']
-    }
-  }
-];
-
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools };
-});
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  try {
-    switch (name) {
-      case 'worktree-create': {
-        const { type, name: worktreName } = args as { type: string; name: string };
-        const result = await orchestrator.createWorktree(type, worktreName);
-        return {
-          content: [{ type: 'text', text: result }]
-        };
-      }
-
-      case 'worktree-spawn-agent': {
-        const { worktree, task, command = 'claude' } = args as {
-          worktree: string;
-          task: string;
-          command?: string;
-        };
-        const agentId = await orchestrator.spawnBackgroundAgent(worktree, task, command);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Background agent spawned: ${agentId}\nWorktree: ${worktree}\nTask: ${task}`
-            }
-          ]
-        };
-      }
-
-      case 'worktree-status': {
-        const status = await orchestrator.getWorktreeStatus();
-        return {
-          content: [{ type: 'text', text: status }]
-        };
-      }
-
-      case 'worktree-agent-status': {
-        const { agentId } = args as { agentId?: string };
-        const agents = await orchestrator.getAgentStatus(agentId);
-        const statusText = agents.map(agent =>
-          `Agent ${agent.id}:\n` +
-          `  Worktree: ${agent.worktree}\n` +
-          `  Task: ${agent.task}\n` +
-          `  Status: ${agent.status}\n` +
-          `  Started: ${agent.startTime.toISOString()}\n` +
-          (agent.completionTime ? `  Completed: ${agent.completionTime.toISOString()}\n` : '') +
-          `  TMux Session: ${agent.tmuxSession || 'N/A'}`
-        ).join('\n\n');
-
-        return {
-          content: [{ type: 'text', text: statusText || 'No agents found' }]
-        };
-      }
-
-      case 'worktree-kill-agent': {
-        const { agentId } = args as { agentId: string };
-        const result = await orchestrator.killAgent(agentId);
-        return {
-          content: [{ type: 'text', text: result }]
-        };
-      }
-
-      case 'worktree-integrate': {
-        const { sourceWorktree, targetBranch = 'main' } = args as {
-          sourceWorktree: string;
-          targetBranch?: string;
-        };
-        const result = await orchestrator.integrateChanges(sourceWorktree, targetBranch);
-        return {
-          content: [{ type: 'text', text: result }]
-        };
-      }
-
-      case 'worktree-agent-logs': {
-        const { agentId, lines = 20 } = args as {
-          agentId: string;
-          lines?: number;
-        };
-        const logs = await orchestrator.getAgentLogs(agentId, lines);
-        return {
-          content: [{ type: 'text', text: logs }]
-        };
-      }
-
-      case 'worktree-agent-progress': {
-        const { worktree, since = 'last-check' } = args as {
-          worktree: string;
-          since?: string;
-        };
-        const progress = await orchestrator.monitorWorktreeProgress(worktree, since);
-        return {
-          content: [{ type: 'text', text: progress }]
-        };
-      }
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
-  } catch (error) {
+  async ({ type, name }) => {
+    const result = await orchestrator.createWorktree(type, name);
     return {
-      content: [{ type: 'text', text: `Error: ${error.message}` }],
-      isError: true
+      content: [{ type: 'text', text: result }]
     };
   }
-});
+);
+
+// Tool 2: Spawn background agent
+server.registerTool(
+  'worktree-spawn-agent',
+  {
+    title: 'Spawn Background Agent',
+    description: 'Spawn a background Claude Code agent in a worktree',
+    inputSchema: {
+      worktree: z.enum(['feature', 'test', 'docs', 'bugfix']).describe('Target worktree for the agent'),
+      task: z.string().describe('Task description for the agent'),
+      command: z.string().default('claude').describe('Command to execute in the background agent')
+    }
+  },
+  async ({ worktree, task, command = 'claude' }) => {
+    const agentId = await orchestrator.spawnBackgroundAgent(worktree, task, command);
+    return {
+      content: [{
+        type: 'text',
+        text: `Background agent spawned: ${agentId}\nWorktree: ${worktree}\nTask: ${task}`
+      }]
+    };
+  }
+);
+
+// Tool 3: Get worktree status
+server.registerTool(
+  'worktree-status',
+  {
+    title: 'Worktree Status',
+    description: 'Get status of all worktrees and background agents',
+    inputSchema: {}
+  },
+  async () => {
+    const status = await orchestrator.getWorktreeStatus();
+    return {
+      content: [{ type: 'text', text: status }]
+    };
+  }
+);
+
+// Tool 4: Get agent status
+server.registerTool(
+  'worktree-agent-status',
+  {
+    title: 'Agent Status',
+    description: 'Get status of background agents',
+    inputSchema: {
+      agentId: z.string().optional().describe('Specific agent ID to check (optional)')
+    }
+  },
+  async ({ agentId }) => {
+    const agents = await orchestrator.getAgentStatus(agentId);
+    const statusText = agents.map(agent =>
+      `Agent ${agent.id}:\n` +
+      `  Worktree: ${agent.worktree}\n` +
+      `  Task: ${agent.task}\n` +
+      `  Status: ${agent.status}\n` +
+      `  Started: ${agent.startTime.toISOString()}\n` +
+      (agent.completionTime ? `  Completed: ${agent.completionTime.toISOString()}\n` : '') +
+      `  TMux Session: ${agent.tmuxSession || 'N/A'}`
+    ).join('\n\n');
+
+    return {
+      content: [{ type: 'text', text: statusText || 'No agents found' }]
+    };
+  }
+);
+
+// Tool 5: Kill agent
+server.registerTool(
+  'worktree-kill-agent',
+  {
+    title: 'Kill Agent',
+    description: 'Kill a background agent',
+    inputSchema: {
+      agentId: z.string().describe('Agent ID to terminate')
+    }
+  },
+  async ({ agentId }) => {
+    const result = await orchestrator.killAgent(agentId);
+    return {
+      content: [{ type: 'text', text: result }]
+    };
+  }
+);
+
+// Tool 6: Get agent logs
+server.registerTool(
+  'worktree-agent-logs',
+  {
+    title: 'Agent Logs',
+    description: 'Get real-time output logs from a background agent',
+    inputSchema: {
+      agentId: z.string().describe('Agent ID to get logs from'),
+      lines: z.number().default(20).describe('Number of recent log lines to retrieve')
+    }
+  },
+  async ({ agentId, lines = 20 }) => {
+    const logs = await orchestrator.getAgentLogs(agentId, lines);
+    return {
+      content: [{ type: 'text', text: logs }]
+    };
+  }
+);
+
+// Tool 7: Monitor worktree progress
+server.registerTool(
+  'worktree-agent-progress',
+  {
+    title: 'Worktree Progress',
+    description: 'Monitor file changes and progress in a worktree',
+    inputSchema: {
+      worktree: z.enum(['feature', 'test', 'docs', 'bugfix']).describe('Worktree to monitor for changes'),
+      since: z.string().default('last-check').describe('Monitor changes since this timestamp (ISO string)')
+    }
+  },
+  async ({ worktree, since = 'last-check' }) => {
+    const progress = await orchestrator.monitorWorktreeProgress(worktree, since);
+    return {
+      content: [{ type: 'text', text: progress }]
+    };
+  }
+);
+
+// Tool 8: Integrate changes
+server.registerTool(
+  'worktree-integrate',
+  {
+    title: 'Integrate Changes',
+    description: 'Integrate changes from a worktree into main branch',
+    inputSchema: {
+      sourceWorktree: z.enum(['feature', 'test', 'docs', 'bugfix']).describe('Source worktree to integrate from'),
+      targetBranch: z.string().default('main').describe('Target branch to merge into')
+    }
+  },
+  async ({ sourceWorktree, targetBranch = 'main' }) => {
+    const result = await orchestrator.integrateChanges(sourceWorktree, targetBranch);
+    return {
+      content: [{ type: 'text', text: result }]
+    };
+  }
+);
 
 async function main() {
   const transport = new StdioServerTransport();

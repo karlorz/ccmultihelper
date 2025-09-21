@@ -78,14 +78,17 @@ describe('MCP Server Tests', () => {
     if (fs.existsSync(mcpServerPath)) {
       const mcpServerContent = fs.readFileSync(mcpServerPath, 'utf8');
 
-      // Check for required MCP SDK imports
-      expect(mcpServerContent).toContain("import { Server } from '@modelcontextprotocol/sdk/server/index.js'");
+      // Check for required MCP SDK imports (updated for modern API)
+      expect(mcpServerContent).toContain("import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'");
       expect(mcpServerContent).toContain("import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'");
-      expect(mcpServerContent).toContain('CallToolRequestSchema');
-      expect(mcpServerContent).toContain('ListToolsRequestSchema');
+      expect(mcpServerContent).toContain("import { z } from 'zod'");
 
       // Check for WorktreeOrchestrator class
       expect(mcpServerContent).toContain('class WorktreeOrchestrator');
+
+      // Check for server instantiation (modern API)
+      expect(mcpServerContent).toContain('new McpServer({');
+      expect(mcpServerContent).toContain('server.registerTool(');
 
       // Check for required tools
       expect(mcpServerContent).toContain('worktree-create');
@@ -225,11 +228,16 @@ describe('WorktreeOrchestrator Class Tests', () => {
       expect(content).toContain('worktree-spawn-agent');
       expect(content).toContain('worktree-status');
 
-      // Check for input schema definitions
+      // Check for modern Zod-based schema definitions
       expect(content).toContain('inputSchema');
-      expect(content).toContain('type: \'object\'');
-      expect(content).toContain('properties');
-      expect(content).toContain('required');
+      expect(content).toContain('z.enum');
+      expect(content).toContain('z.string');
+      expect(content).toContain('.describe(');
+
+      // Check for server registration pattern
+      expect(content).toContain('server.registerTool(');
+      expect(content).toContain('title:');
+      expect(content).toContain('description:');
     }
   });
 });

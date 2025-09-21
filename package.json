@@ -39,12 +39,13 @@
   "author": "Claude Code Community",
   "license": "MIT",
   "dependencies": {
-    "commander": "^12.0.0",
-    "chalk": "^5.3.0",
-    "inquirer": "^9.2.12",
-    "fs-extra": "^11.1.1",
-    "chokidar": "^3.5.3",
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "chalk": "^5.6.2",
+    "chokidar": "^3.6.0",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.3.2",
+    "inquirer": "^9.3.8",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
@@ -54,11 +55,11 @@
     "conventional-changelog-conventionalcommits": "^7.0.2",
     "@types/bun": "^1.2.22",
     "@types/fs-extra": "^11.0.4",
-    "@types/inquirer": "^9.0.7",
-    "@types/node": "^20.11.0",
-    "bun": "^1.0.0",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^20.19.17",
+    "bun": "^1.2.22",
     "semantic-release": "^24.2.9",
-    "typescript": "^5.3.0"
+    "typescript": "^5.9.2"
   },
   "engines": {
     "node": ">=18.0.0"

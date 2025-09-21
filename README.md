@@ -1,19 +1,20 @@
 # Claude Code Multi-Worktree Helper
 
-> 🚀 **Single-session parallel worktree automation with MCP server orchestration**
+> 🚀 **Single-session parallel worktree automation with modern MCP server orchestration**
 
-## ✨ What's New in v2.0?
+## ✨ What's New in v1.4+?
 
-This project has been completely redesigned with a **single-session architecture** that eliminates the complexity of managing multiple Claude Code sessions. Now uses an **MCP server** for background agent orchestration.
+This project has been completely **refactored to follow official MCP guidelines** using the latest TypeScript SDK patterns. The **single-session architecture** eliminates the complexity of managing multiple Claude Code sessions with a modern **MCP server** for background agent orchestration.
 
 ### Key Features
 
 - 🎯 **Single-Session Architecture**: One Claude Code session manages everything
 - 🤖 **Background Agent System**: Parallel work handled by tmux-based agents
-- 🔧 **MCP Server Integration**: Model Context Protocol server for tool orchestration
-- 🎨 **Natural Language Commands**: Intuitive slash commands for all operations
+- 🔧 **Modern MCP Server**: Built with latest TypeScript SDK and Zod validation
+- 🎨 **Natural Language Interface**: Intuitive commands through MCP tool integration
 - 🔄 **Automatic Workflow Coordination**: Signal files trigger background workflows
-- 📦 **Self-Contained Setup**: No external dependencies required
+- 📦 **Self-Contained Setup**: Zero external dependencies beyond Node.js and tmux
+- ⚡ **Official MCP Patterns**: Follows Model Context Protocol best practices
 
 ## 🚀 Quick Start
 
@@ -138,43 +139,43 @@ git worktree list
 
 ## 🛠️ Single-Session Commands
 
-### MCP Server Tools (Available via Natural Language)
+### MCP Server Tools (Natural Language Interface)
 
-The orchestrator provides these tools through the MCP server. Use natural language to access them:
+The refactored orchestrator provides these tools through the modern MCP server. Use natural language to access them:
 
 #### Worktree Management
-- `mcp__worktree-orchestrator__worktree-create` - Create worktrees (feature/test/docs/bugfix)
+- **Create Worktree** - Create worktrees (feature/test/docs/bugfix)
   - *Usage*: "Create a feature worktree called user-auth"
   - *Usage*: "Set up a test worktree for integration testing"
 
 #### Background Agent System
-- `mcp__worktree-orchestrator__worktree-spawn-agent` - Launch background Claude agents
+- **Spawn Agent** - Launch background Claude agents
   - *Usage*: "Spawn an agent in the feature worktree to implement login"
   - *Usage*: "Start a background agent to run tests"
 
 #### Status and Monitoring
-- `mcp__worktree-orchestrator__worktree-status` - Show comprehensive worktree and agent status
+- **Worktree Status** - Show comprehensive worktree and agent status
   - *Usage*: "Show me the status of all worktrees"
   - *Usage*: "What agents are currently running?"
 
-- `mcp__worktree-orchestrator__worktree-agent-status` - Get detailed agent information
+- **Agent Status** - Get detailed agent information
   - *Usage*: "Get status of all background agents"
   - *Usage*: "Check the status of agent-123456789"
 
-- `mcp__worktree-orchestrator__worktree-agent-logs` - Stream real-time agent output
+- **Agent Logs** - Stream real-time agent output
   - *Usage*: "Show me the logs from the running agent"
   - *Usage*: "Get the last 50 lines from agent-123456789"
 
-- `mcp__worktree-orchestrator__worktree-agent-progress` - Monitor worktree file changes
+- **Worktree Progress** - Monitor worktree file changes
   - *Usage*: "Monitor progress in the feature worktree"
   - *Usage*: "Check what changes are happening in the test worktree"
 
 #### Agent Lifecycle Management
-- `mcp__worktree-orchestrator__worktree-kill-agent` - Terminate background agents
+- **Kill Agent** - Terminate background agents
   - *Usage*: "Kill the agent that's stuck"
   - *Usage*: "Terminate agent-123456789"
 
-- `mcp__worktree-orchestrator__worktree-integrate` - Merge worktree changes
+- **Integrate Changes** - Merge worktree changes
   - *Usage*: "Integrate feature changes into main branch"
   - *Usage*: "Merge the bugfix worktree into develop"
 
@@ -247,11 +248,13 @@ claude
 
 ### How It Works
 
-#### **MCP Server Orchestration**
-- **Background Agents**: Spawn Claude Code agents in tmux sessions
-- **Tool Integration**: MCP server provides worktree management tools
-- **Agent Lifecycle**: Monitor, coordinate, and manage background work
-- **Resource Management**: Efficient allocation of compute resources
+#### **MCP Server Architecture**
+- **Modern TypeScript SDK**: Built with latest `@modelcontextprotocol/sdk` v1.18.1+
+- **Zod Validation**: Type-safe input schemas with descriptive error messages
+- **Background Agents**: Spawn Claude Code agents in isolated tmux sessions
+- **Tool Integration**: 8 comprehensive tools for complete worktree lifecycle management
+- **Agent Lifecycle**: Monitor, coordinate, and manage background work efficiently
+- **Resource Management**: Efficient allocation and cleanup of compute resources
 
 #### **Workflow Coordination**
 1. **Create Worktrees**: "Create a feature worktree called feature-name"
@@ -322,9 +325,9 @@ After running the setup script, your project will have:
 │   └── worktree-config.json      # Project configuration
 ├── .mcp.json                     # MCP server configuration (project root)
 ├── src/
-│   └── mcp-server.js             # MCP server implementation
+│   └── mcp-server.ts             # Modern MCP server implementation
 ├── dist/
-│   └── mcp-server.js             # Compiled MCP server
+│   └── mcp-server.js             # Compiled MCP server with Zod schemas
 ├── ../your-project-worktrees/
 │   ├── feature/                  # Feature development
 │   │   └── launch-claude.sh      # Quick launch script
@@ -477,8 +480,10 @@ Use natural language for worktree integration:
 - ✅ **Centralized Monitoring**: View all work from one interface
 
 ### **MCP Server vs Manual Coordination**
+- ✅ **Modern TypeScript SDK**: Built with latest official MCP patterns and Zod validation
+- ✅ **Type-Safe Schemas**: Input validation with descriptive error messages
 - ✅ **Automated Workflows**: Signal files trigger background work automatically
-- ✅ **Tool Integration**: Native Claude Code tool access through MCP
+- ✅ **Tool Integration**: Native Claude Code tool access through MCP protocol
 - ✅ **Background Processing**: Long-running tasks don't block main session
 - ✅ **Intelligent Coordination**: Automatic workflow chains and dependencies
 - ✅ **Real-time Monitoring**: Stream agent output and track progress in real-time
@@ -582,7 +587,8 @@ tmux attach -t claude-feature-agent-123456789
 
 Contributions are welcome! This project uses:
 - **TypeScript** for type safety
-- **MCP SDK** for tool integration
+- **Modern MCP SDK** for tool integration following official patterns
+- **Zod** for runtime type validation and input schemas
 - **Bun** for fast builds and testing
 - **TMux** for background session management
 
@@ -594,16 +600,27 @@ git clone <repository-url>
 cd multi-worktree-setup
 
 # Install dependencies
-npm install
+bun install
 
 # Run in development mode
-npm run dev:mcp      # MCP server
-npm run dev:session  # Command interface
-npm run dev          # Legacy CLI
+bun run dev:mcp      # MCP server
+bun run dev:session  # Command interface
+bun run dev          # Legacy CLI
 
 # Build for production
-npm run build
+bun run build
+
+# Run tests
+bun run test
 ```
+
+### MCP Development Guidelines
+
+This project follows the official Model Context Protocol patterns:
+- Uses `McpServer` class instead of low-level `Server`
+- Implements Zod schemas for type-safe validation
+- Follows official SDK examples and patterns
+- Maintains compatibility with latest MCP specification
 
 ## 📄 License
 
