@@ -1,3 +1,11 @@
+## [1.7.3](https://github.com/karlorz/ccmultihelper/compare/v1.7.2...v1.7.3) (2025-09-21)
+
+
+### Bug Fixes
+
+* completely rewrite setup script to extract MCP server from npm package ([abf0214](https://github.com/karlorz/ccmultihelper/commit/abf02141e6deb82ccd7ae18353b088b231732401))
+* increase test timeout for setup script in CI environments ([38a80dd](https://github.com/karlorz/ccmultihelper/commit/38a80dd89c70cbc21a3f135f757d57a9014911c0))
+
 ## [1.7.2](https://github.com/karlorz/ccmultihelper/compare/v1.7.1...v1.7.2) (2025-09-21)
 
 
