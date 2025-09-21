@@ -1,3 +1,10 @@
+## [1.2.5](https://github.com/karlorz/ccmultihelper/compare/v1.2.4...v1.2.5) (2025-09-21)
+
+
+### Bug Fixes
+
+* critical MCP server fixes for npm package and claude mcp list visibility ([ec9c2f3](https://github.com/karlorz/ccmultihelper/commit/ec9c2f368affd28678e33d189addf268e50773f4))
+
 ## [1.2.4](https://github.com/karlorz/ccmultihelper/compare/v1.2.3...v1.2.4) (2025-09-21)
 
 
