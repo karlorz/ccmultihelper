@@ -153,9 +153,30 @@ The orchestrator provides these tools through the MCP server. Use natural langua
   - *Usage*: "Start a background agent to run tests"
 
 #### Status and Monitoring
-- `mcp__worktree-orchestrator__worktree-status` - Show all worktrees and active agents
+- `mcp__worktree-orchestrator__worktree-status` - Show comprehensive worktree and agent status
   - *Usage*: "Show me the status of all worktrees"
   - *Usage*: "What agents are currently running?"
+
+- `mcp__worktree-orchestrator__worktree-agent-status` - Get detailed agent information
+  - *Usage*: "Get status of all background agents"
+  - *Usage*: "Check the status of agent-123456789"
+
+- `mcp__worktree-orchestrator__worktree-agent-logs` - Stream real-time agent output
+  - *Usage*: "Show me the logs from the running agent"
+  - *Usage*: "Get the last 50 lines from agent-123456789"
+
+- `mcp__worktree-orchestrator__worktree-agent-progress` - Monitor worktree file changes
+  - *Usage*: "Monitor progress in the feature worktree"
+  - *Usage*: "Check what changes are happening in the test worktree"
+
+#### Agent Lifecycle Management
+- `mcp__worktree-orchestrator__worktree-kill-agent` - Terminate background agents
+  - *Usage*: "Kill the agent that's stuck"
+  - *Usage*: "Terminate agent-123456789"
+
+- `mcp__worktree-orchestrator__worktree-integrate` - Merge worktree changes
+  - *Usage*: "Integrate feature changes into main branch"
+  - *Usage*: "Merge the bugfix worktree into develop"
 
 > **Note**: You don't need to use the technical tool names directly. Claude Code will automatically map your natural language requests to the appropriate MCP tools.
 
@@ -180,9 +201,11 @@ bunx ccmultihelper start-monitor [-t auto-detect|file-monitor|webhook]
 bunx ccmultihelper cleanup
 ```
 
-### Claude Code Slash Commands
+### Claude Code Slash Commands (Legacy Multi-Session)
 
-Once initialized, you'll have these slash commands available in Claude Code:
+**Note**: These slash commands are for the legacy multi-session approach. For the new single-session architecture, use natural language with MCP tools instead.
+
+Once initialized with the legacy CLI, you'll have these slash commands available:
 
 #### Worktree Navigation
 - `/worktree-feature` - Navigate to feature worktree
@@ -195,6 +218,8 @@ Once initialized, you'll have these slash commands available in Claude Code:
 - `/status-worktrees` - Show status of all worktrees
 - `/monitor-start` - Start worktree monitoring
 - `/monitor-stop` - Stop worktree monitoring
+
+> **Migration Note**: Consider migrating to the single-session architecture for better performance and monitoring capabilities. The new MCP-based system provides real-time agent monitoring, progress tracking, and simplified workflow management.
 
 ## 🤖 Single-Session Architecture
 
@@ -378,33 +403,42 @@ Claude Code hooks are configured in `.claude/hooks.json`:
 
 ### Custom Agent Commands
 
-You can spawn agents with custom commands:
+You can spawn agents with custom commands using natural language:
 
 ```bash
-# Run tests in background
-/worktree-spawn-agent test "Run full test suite" "npm test"
-
-# Build documentation
-/worktree-spawn-agent docs "Generate API docs" "npm run docs"
-
-# Custom development task
-/worktree-spawn-agent feature "Complex refactoring" "echo 'Starting refactor...' && touch .claude-complete"
+# Examples with natural language
+"Spawn an agent in the test worktree to run the full test suite with command 'npm test'"
+"Start a background agent in docs worktree to generate API documentation using 'npm run docs'"
+"Create an agent in feature worktree to run complex refactoring with command 'echo Starting refactor && touch .claude-complete'"
 ```
 
 ### Agent Lifecycle Management
 
+Use natural language for agent management:
+
 ```bash
 # Check all agents
-/worktree-agent-status
+"Show me the status of all background agents"
+"What agents are currently running?"
 
 # Check specific agent
-/worktree-agent-status agent-1234567890
+"Get detailed status for agent-1234567890"
+"Show me information about the running agent"
+
+# Monitor agent output
+"Get logs from agent-1234567890"
+"Show me the last 30 lines of output from the active agent"
+
+# Monitor worktree progress
+"Monitor progress in the feature worktree"
+"Check what changes are happening in the test worktree"
 
 # Kill problematic agent
-/worktree-kill-agent agent-1234567890
+"Kill agent-1234567890"
+"Terminate the stuck background agent"
 
 # Create new agent for different task
-/worktree-spawn-agent bugfix "Fix authentication bug"
+"Spawn an agent in bugfix worktree to fix authentication bug"
 ```
 
 ### Signal File Workflows
@@ -418,15 +452,19 @@ The system automatically processes these signal files:
 
 ### Integration Strategies
 
+Use natural language for worktree integration:
+
 ```bash
 # Direct integration to main
-/worktree-integrate feature main
+"Integrate feature worktree changes into main branch"
+"Merge the feature worktree into main"
 
 # Integration to development branch
-/worktree-integrate feature develop
+"Integrate feature worktree into develop branch"
+"Merge bugfix changes into development"
 
 # Integration with conflict resolution
-/worktree-integrate bugfix main
+"Integrate bugfix worktree into main branch"
 # If conflicts occur, the tool will provide guidance
 ```
 
@@ -443,6 +481,8 @@ The system automatically processes these signal files:
 - ✅ **Tool Integration**: Native Claude Code tool access through MCP
 - ✅ **Background Processing**: Long-running tasks don't block main session
 - ✅ **Intelligent Coordination**: Automatic workflow chains and dependencies
+- ✅ **Real-time Monitoring**: Stream agent output and track progress in real-time
+- ✅ **Agent Lifecycle Management**: Complete control over background agent operations
 
 ### **vs Traditional Git Worktrees**
 - ✅ **Claude Code Integration**: Purpose-built for Claude Code workflows
@@ -482,10 +522,10 @@ cat .claude/hooks.json
 tmux --version
 
 # Verify worktrees exist
-/worktree-status
+"Show me the status of all worktrees"
 
 # Check agent status
-/worktree-agent-status
+"What agents are currently running?"
 ```
 
 **Worktree integration issues:**
@@ -497,7 +537,7 @@ git worktree list
 git status
 
 # Use detailed status command
-/worktree-status
+"Show me comprehensive worktree status"
 ```
 
 ### Debug Mode
@@ -521,10 +561,10 @@ tmux attach -t claude-feature-agent-123456789
 ## 🎯 Roadmap
 
 ### v2.1 - Enhanced Agent Management
+- ✅ **Agent output streaming to main session** - Real-time tmux output capture
+- ✅ **Agent resource usage monitoring** - Runtime tracking and session management
 - [ ] Agent persistence across Claude Code restarts
-- [ ] Agent output streaming to main session
 - [ ] Custom agent templates and presets
-- [ ] Agent resource usage monitoring
 
 ### v2.2 - Workflow Extensions
 - [ ] Visual workflow designer
