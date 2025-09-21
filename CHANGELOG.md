@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/karlorz/ccmultihelper/compare/v1.2.5...v1.3.0) (2025-09-21)
+
+
+### Features
+
+* Add comprehensive agent monitoring and progress tracking ([5ca3b52](https://github.com/karlorz/ccmultihelper/commit/5ca3b529c6faaccac75b274ccd010e81a10e79bf))
+
 ## [1.2.5](https://github.com/karlorz/ccmultihelper/compare/v1.2.4...v1.2.5) (2025-09-21)
 
 
