@@ -18,6 +18,7 @@ This is a Claude Code Multi-Worktree Helper implementing single-session parallel
 **Important**: When developing MCP server features, follow the official Model Context Protocol guidelines:
 
 - **Official Documentation**: See `llms-full.txt` for complete MCP specification
+- **Link Map**: See `llms.txt` for all official MCP documentation links
 - **Development Guide**: See `MCP-DEVELOPMENT-GUIDE.md` for our implementation patterns
 - **Reference Example**: Follow patterns from `@modelcontextprotocol/server-filesystem`
 - **Official Servers Repo**: https://github.com/modelcontextprotocol/servers

@@ -6,12 +6,48 @@ This document outlines the official Model Context Protocol (MCP) development pra
 
 ### Primary Documentation
 - **Official MCP Documentation**: https://modelcontextprotocol.io/
-- **Local Reference**: `/Users/karlchow/Desktop/code/multi-worktree-setup/llms-full.txt`
+- **Local Reference**: `/Users/karlchow/Desktop/code/multi-worktree-setup/llms-full.txt` (Complete MCP specification)
+- **Link Map**: `/Users/karlchow/Desktop/code/multi-worktree-setup/llms.txt` (All official MCP links)
 - **Official Server Examples**: https://github.com/modelcontextprotocol/servers
+
+### Key Official Links (from llms.txt)
+
+#### Getting Started
+- [What is MCP?](https://modelcontextprotocol.io/docs/getting-started/intro.md)
+- [Architecture Overview](https://modelcontextprotocol.io/docs/learn/architecture.md)
+- [Understanding MCP Servers](https://modelcontextprotocol.io/docs/learn/server-concepts.md)
+- [Understanding MCP Clients](https://modelcontextprotocol.io/docs/learn/client-concepts.md)
+
+#### Development Guides
+- [Build an MCP Server](https://modelcontextprotocol.io/docs/develop/build-server.md) ⭐ **Primary Guide**
+- [Connect to Local MCP Servers](https://modelcontextprotocol.io/docs/develop/connect-local-servers.md)
+- [Example Servers](https://modelcontextprotocol.io/examples.md)
+- [Official SDKs](https://modelcontextprotocol.io/docs/sdk.md)
+
+#### Core Specification
+- [Server Tools](https://modelcontextprotocol.io/specification/2025-06-18/server/tools.md) ⭐ **Our Focus**
+- [Basic Lifecycle](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle.md)
+- [Transports](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports.md)
+- [Security Best Practices](https://modelcontextprotocol.io/specification/2025-06-18/basic/security_best_practices.md)
+
+#### Testing and Debugging
+- [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector.md)
+- [Logging](https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/logging.md)
+- [Progress Reporting](https://modelcontextprotocol.io/specification/2025-06-18/basic/utilities/progress.md)
 
 ### Reference Implementation
 - **Filesystem Server**: https://raw.githubusercontent.com/modelcontextprotocol/servers/refs/heads/main/src/filesystem/README.md
 - **Package**: `@modelcontextprotocol/server-filesystem`
+
+### Complete Link Reference
+**All Official MCP Links**: The file `llms.txt` contains a comprehensive map of all official MCP documentation links, organized by category:
+- Getting Started and Architecture
+- Development Guides and SDKs
+- Core Specification and Server Concepts
+- Testing Tools and Debugging
+- Security and Best Practices
+
+Use this as your primary reference for finding specific MCP documentation.
 
 ## Our MCP Server Architecture
 
