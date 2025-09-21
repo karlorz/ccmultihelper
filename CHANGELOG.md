@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/karlorz/ccmultihelper/compare/v1.5.1...v1.6.0) (2025-09-21)
+
+
+### Features
+
+* make bunx ccmultihelper init default to modern single-session setup ([30c344d](https://github.com/karlorz/ccmultihelper/commit/30c344d9bfce59726a23c348fc6151bbe4965c81))
+
 ## [1.5.1](https://github.com/karlorz/ccmultihelper/compare/v1.5.0...v1.5.1) (2025-09-21)
 
 
