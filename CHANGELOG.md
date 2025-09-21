@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/karlorz/ccmultihelper/compare/v1.7.1...v1.7.2) (2025-09-21)
+
+
+### Bug Fixes
+
+* correct fallback MCP server class name from Server to McpServer ([8e944b9](https://github.com/karlorz/ccmultihelper/commit/8e944b9bd7463835900b9f67703684219b60e4a2))
+
 ## [1.7.1](https://github.com/karlorz/ccmultihelper/compare/v1.7.0...v1.7.1) (2025-09-21)
 
 
