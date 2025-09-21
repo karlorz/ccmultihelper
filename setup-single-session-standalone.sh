@@ -1,373 +1,110 @@
 #!/bin/bash
-# Single-Session Worktree Setup Script
-# Self-contained setup that creates the MCP server components inline
+
+# Single-Session Worktree Orchestration Setup Script
+# Modern MCP-based approach for Claude Code
 
 set -e
 
-PROJECT_NAME="${1:-$(basename $(pwd))}"
+PROJECT_NAME="$1"
 
 echo "🚀 Setting up Single-Session Worktree Orchestration..."
-echo "Project: $PROJECT_NAME"
+echo "Project: ${PROJECT_NAME}"
 echo ""
 
-# Check if we're in a git repository
-if [ ! -d ".git" ]; then
+# Check if we're in a Git repository
+if [ ! -d .git ]; then
     echo "❌ Error: Not a Git repository. Please run this from your project root."
     exit 1
 fi
 
-# Create project structure
 echo "📁 Creating project structure..."
-mkdir -p {src,dist,.claude/{commands,hooks}}
+mkdir -p src dist .claude/commands .claude/hooks
 
-# Get the latest package version from GitHub
+# Get latest version from GitHub
 echo "📡 Fetching latest version..."
 LATEST_VERSION=$(curl -s https://raw.githubusercontent.com/karlorz/ccmultihelper/main/package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)",/\1/')
+
 if [ -z "$LATEST_VERSION" ]; then
-    echo "⚠️  Could not fetch latest version, using fallback version 1.3.0"
-    LATEST_VERSION="1.3.0"
-else
-    echo "✅ Latest version: $LATEST_VERSION"
+    LATEST_VERSION="1.7.2"
 fi
 
-# Create package.json if it doesn't exist
-if [ ! -f "package.json" ]; then
+echo "✅ Latest version: $LATEST_VERSION"
+
+# Update package.json with required dependencies
+if [ ! -f package.json ]; then
     echo "📦 Creating package.json..."
     cat > package.json << EOF
 {
-  "name": "$(basename $(pwd))-worktree-orchestrator",
-  "version": "$LATEST_VERSION",
+  "name": "${PROJECT_NAME}-worktree-orchestrator",
   "type": "module",
+  "version": "1.0.0",
+  "description": "Worktree orchestration for ${PROJECT_NAME}",
+  "main": "dist/mcp-server.js",
   "scripts": {
-    "build": "bun build src/mcp-server.js --outfile=dist/mcp-server.js --target=node",
-    "dev": "node src/mcp-server.js"
+    "start": "node dist/mcp-server.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "fs-extra": "^11.3.2",
-    "zod": "^4.1.11"
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "fs-extra": "^11.3.2"
   }
 }
 EOF
 else
     echo "📦 Updating existing package.json with required dependencies..."
-    # Check if package.json has type: module, if not add it
+    # Ensure package.json has ES modules enabled
     if ! grep -q '"type".*"module"' package.json; then
-        # Add type: module after name field
-        sed -i.bak 's/"name":\s*"[^"]*",/"name": "'$(basename $(pwd))'-worktree-orchestrator",\n  "type": "module",/' package.json
-    fi
-
-    # Install required dependencies if not already present
-    if command -v bun >/dev/null 2>&1; then
-        echo "Adding required dependencies with bun..."
-        bun add @modelcontextprotocol/sdk fs-extra
-    else
-        echo "Adding required dependencies with npm..."
-        npm install @modelcontextprotocol/sdk fs-extra
+        # Get current project name from package.json or use provided name
+        CURRENT_NAME=$(grep -o '"name":\s*"[^"]*"' package.json | sed 's/"name":\s*"\([^"]*\)"/\1/' || echo "${PROJECT_NAME}")
+        sed -i.bak 's/"name":\s*"[^"]*",/"name": "'${PROJECT_NAME}'-worktree-orchestrator",\n  "type": "module",/' package.json
     fi
 fi
 
 # Install dependencies
-echo "📦 Installing dependencies..."
 if command -v bun >/dev/null 2>&1; then
+    echo "Adding required dependencies with bun..."
+    bun add @modelcontextprotocol/sdk fs-extra
+    echo "📦 Installing dependencies..."
     echo "Using bun for installation..."
     bun install
 else
+    echo "Adding required dependencies with npm..."
+    npm install @modelcontextprotocol/sdk fs-extra
+    echo "📦 Installing dependencies..."
     echo "Using npm for installation..."
     npm install
 fi
 
-# Create MCP server (Download latest version)
+# Extract MCP server from npm package
 echo "🔨 Creating MCP server..."
-echo "Downloading latest MCP server from GitHub..."
-curl -s https://raw.githubusercontent.com/karlorz/ccmultihelper/main/dist/mcp-server.js > dist/mcp-server.js
+echo "Extracting MCP server from published package..."
 
-# Check if download was successful by looking for valid JavaScript content
-if [ ! -s dist/mcp-server.js ] || grep -q "404.*Not Found" dist/mcp-server.js; then
-    echo "⚠️  Failed to download MCP server, creating fallback version..."
-    # Fallback to embedded version with modern MCP patterns
-    cat > src/mcp-server.js << 'EOF'
-#!/usr/bin/env node
-/**
- * Worktree Orchestrator MCP Server
- * Single-session parallel worktree automation system
- */
-
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
-import { execSync } from 'child_process';
-import fs from 'fs-extra';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-// Get package version dynamically
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const packagePath = path.join(__dirname, '..', 'package.json');
-const packageJson = fs.readJsonSync(packagePath);
-const VERSION = packageJson.version;
-
-class WorktreeOrchestrator {
-  constructor() {
-    this.agents = new Map();
-    this.gitRoot = this.getGitRoot();
-    this.projectName = this.detectProjectName();
-    this.worktreesDir = path.join(this.gitRoot, '..', `${this.projectName}-worktrees`);
-  }
-
-  getGitRoot() {
-    try {
-      return execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
-    } catch (error) {
-      throw new Error('Not in a Git repository');
-    }
-  }
-
-  detectProjectName() {
-    const configPath = path.join(this.gitRoot, '.claude', 'worktree-config.json');
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      return config.projectName;
-    }
-    return path.basename(this.gitRoot);
-  }
-
-  async createWorktree(worktreeType, featureName) {
-    const branchName = `${worktreeType}/${featureName}`;
-    const worktreePath = path.join(this.worktreesDir, worktreeType);
-
-    try {
-      await fs.ensureDir(this.worktreesDir);
-
-      if (await fs.pathExists(worktreePath)) {
-        try {
-          execSync(`git worktree remove ${worktreePath}`, { cwd: this.gitRoot });
-        } catch (error) {
-          await fs.remove(worktreePath);
-        }
-      }
-
-      try {
-        execSync(`git worktree add -b ${branchName} ${worktreePath}`, {
-          cwd: this.gitRoot,
-          stdio: 'pipe'
-        });
-      } catch (error) {
-        execSync(`git worktree add ${worktreePath} ${branchName}`, {
-          cwd: this.gitRoot,
-          stdio: 'pipe'
-        });
-      }
-
-      const launchScript = `#!/bin/bash
-echo "Starting Claude Code in ${worktreeType} environment..."
-echo "Feature: ${featureName}"
-echo "Branch: ${branchName}"
-echo "Path: $(pwd)"
-claude
-`;
-      await fs.writeFile(path.join(worktreePath, 'launch-claude.sh'), launchScript);
-      await fs.chmod(path.join(worktreePath, 'launch-claude.sh'), '755');
-
-      return `Created ${worktreeType} worktree for ${featureName} → ${branchName}`;
-    } catch (error) {
-      throw new Error(`Failed to create worktree: ${error.message}`);
-    }
-  }
-
-  async spawnBackgroundAgent(worktree, task, command) {
-    const agentId = `agent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const tmuxSession = `claude-${worktree}-${agentId}`;
-    const worktreePath = path.join(this.worktreesDir, worktree);
-
-    if (!await fs.pathExists(worktreePath)) {
-      throw new Error(`Worktree ${worktree} does not exist`);
-    }
-
-    try {
-      const tmuxCommand = `tmux new-session -d -s ${tmuxSession} -c ${worktreePath} '${command}'`;
-      execSync(tmuxCommand);
-
-      const agent = {
-        id: agentId,
-        worktree,
-        task,
-        status: 'running',
-        tmuxSession,
-        startTime: new Date()
-      };
-
-      this.agents.set(agentId, agent);
-      return agentId;
-    } catch (error) {
-      throw new Error(`Failed to spawn background agent: ${error.message}`);
-    }
-  }
-
-  async getWorktreeStatus() {
-    const status = [];
-    status.push(`Project: ${this.projectName}`);
-    status.push(`Worktrees directory: ${this.worktreesDir}`);
-    status.push('');
-
-    try {
-      const worktreeList = execSync('git worktree list', {
-        cwd: this.gitRoot,
-        encoding: 'utf8'
-      });
-      status.push('Git Worktrees:');
-      status.push(worktreeList);
-    } catch (error) {
-      status.push('No worktrees found');
-    }
-
-    const activeAgents = Array.from(this.agents.values()).filter(a => a.status === 'running');
-    status.push(`Active background agents: ${activeAgents.length}`);
-
-    for (const agent of activeAgents) {
-      status.push(`  - ${agent.id}: ${agent.task} (${agent.worktree})`);
-    }
-
-    return status.join('\n');
-  }
-}
-
-const server = new McpServer(
-  {
-    name: 'worktree-orchestrator',
-    version: VERSION,
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
-
-const orchestrator = new WorktreeOrchestrator();
-
-const tools = [
-  {
-    name: 'worktree-create',
-    description: 'Create a new worktree for parallel development',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        type: {
-          type: 'string',
-          enum: ['feature', 'test', 'docs', 'bugfix'],
-          description: 'Type of worktree to create'
-        },
-        name: {
-          type: 'string',
-          description: 'Name/identifier for the worktree branch'
-        }
-      },
-      required: ['type', 'name']
-    }
-  },
-  {
-    name: 'worktree-spawn-agent',
-    description: 'Spawn a background Claude Code agent in a worktree',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        worktree: {
-          type: 'string',
-          enum: ['feature', 'test', 'docs', 'bugfix'],
-          description: 'Target worktree for the agent'
-        },
-        task: {
-          type: 'string',
-          description: 'Task description for the agent'
-        },
-        command: {
-          type: 'string',
-          description: 'Command to execute in the background agent',
-          default: 'claude'
-        }
-      },
-      required: ['worktree', 'task']
-    }
-  },
-  {
-    name: 'worktree-status',
-    description: 'Get status of all worktrees and background agents',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
-  }
-];
-
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return { tools };
-});
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  try {
-    switch (name) {
-      case 'worktree-create': {
-        const { type, name: worktreName } = args;
-        const result = await orchestrator.createWorktree(type, worktreName);
-        return {
-          content: [{ type: 'text', text: result }]
-        };
-      }
-
-      case 'worktree-spawn-agent': {
-        const { worktree, task, command = 'claude' } = args;
-        const agentId = await orchestrator.spawnBackgroundAgent(worktree, task, command);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Background agent spawned: ${agentId}\nWorktree: ${worktree}\nTask: ${task}`
-            }
-          ]
-        };
-      }
-
-      case 'worktree-status': {
-        const status = await orchestrator.getWorktreeStatus();
-        return {
-          content: [{ type: 'text', text: status }]
-        };
-      }
-
-      default:
-        throw new Error(`Unknown tool: ${name}`);
-    }
-  } catch (error) {
-    return {
-      content: [{ type: 'text', text: `Error: ${error.message}` }],
-      isError: true
-    };
-  }
-});
-
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-}
-
-main().catch((error) => {
-  console.error('MCP Server error:', error);
-  process.exit(1);
-});
-EOF
-
-    # Copy fallback to dist directory
-    cp src/mcp-server.js dist/mcp-server.js
+if command -v bunx >/dev/null 2>&1; then
+    # Install package globally and copy the MCP server
+    npm install -g ccmultihelper@latest
+    NPM_PKG_PATH=$(npm root -g)/ccmultihelper
+    if [ -f "$NPM_PKG_PATH/dist/mcp-server.js" ]; then
+        cp "$NPM_PKG_PATH/dist/mcp-server.js" dist/
+        echo "✅ Successfully extracted MCP server from package"
+    else
+        echo "❌ Could not extract MCP server, setup incomplete"
+        exit 1
+    fi
+elif command -v npx >/dev/null 2>&1; then
+    # Fallback to npx
+    npm install -g ccmultihelper@latest
+    NPM_PKG_PATH=$(npm root -g)/ccmultihelper
+    if [ -f "$NPM_PKG_PATH/dist/mcp-server.js" ]; then
+        cp "$NPM_PKG_PATH/dist/mcp-server.js" dist/
+        echo "✅ Successfully extracted MCP server from package"
+    else
+        echo "❌ Could not extract MCP server, setup incomplete"
+        exit 1
+    fi
 else
-    echo "✅ Successfully downloaded latest MCP server"
+    echo "❌ Neither bunx nor npx available, cannot setup MCP server"
+    exit 1
 fi
 
-# Prepare distribution files if needed
 echo "📦 Preparing distribution files..."
 
 # Register the MCP server with Claude Code CLI
@@ -403,7 +140,9 @@ if command -v claude >/dev/null 2>&1; then
         echo "⚠️ .mcp.json not created - manual setup may be required"
     fi
 else
-    echo "⚠️ Claude CLI not found. Creating .mcp.json manually..."
+    echo "⚠️ Claude Code CLI not found - creating manual .mcp.json configuration"
+
+    # Create manual MCP configuration
     cat > .mcp.json << 'EOF'
 {
   "mcpServers": {
@@ -438,20 +177,10 @@ Use the Claude Code tool calling interface to access these MCP tools:
 • "Spawn an agent in the feature worktree to implement login"
 • "Show me the status of all worktrees"
 
-Background Agent System:
-- Agents run in tmux sessions for parallel execution
-- Signal files (.claude-complete, .tests-complete) trigger workflows
-- Automatic coordination between worktrees
-
-Single-Session Architecture:
-- No need for multiple Claude Code instances
-- Background agents handle parallel work
-- Unified MCP tool interface for all operations`
+Background agents run in tmux sessions for parallel development.`
   }
 }));
 EOF
-
-chmod +x .claude/hooks/session-start.js
 
 # Create hooks configuration
 cat > .claude/hooks.json << 'EOF'
@@ -474,11 +203,14 @@ EOF
 # Create project configuration
 cat > .claude/worktree-config.json << EOF
 {
-  "projectName": "$PROJECT_NAME",
-  "mode": "single-session",
-  "mcpServer": "worktree-orchestrator",
-  "createdAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "version": "$LATEST_VERSION"
+  "projectName": "${PROJECT_NAME}",
+  "version": "${LATEST_VERSION}",
+  "createdAt": "$(date -Iseconds)",
+  "mcpServer": {
+    "name": "worktree-orchestrator",
+    "command": "node",
+    "args": ["dist/mcp-server.js"]
+  }
 }
 EOF
 
