@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/karlorz/ccmultihelper/compare/v1.6.0...v1.7.0) (2025-09-21)
+
+
+### Features
+
+* add npx/bunx MCP server support like @modelcontextprotocol/server-filesystem ([f4c2635](https://github.com/karlorz/ccmultihelper/commit/f4c2635e3e4d2054839c797d60d500e957028477))
+
 # [1.6.0](https://github.com/karlorz/ccmultihelper/compare/v1.5.1...v1.6.0) (2025-09-21)
 
 
